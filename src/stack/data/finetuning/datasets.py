@@ -31,11 +31,18 @@ _get_h5_handle = get_h5_handle
 _reset_h5_handle_pool = reset_h5_handle_pool
 _worker_init_fn = worker_init_fn
 
+PAIRED_SAMPLING_METHODS = {
+    "method1_capacity_strict",
+    "method2_capacity_repeat_pre",
+    "method3_post_only_strict",
+    "method4_post_only_repeat_pre",
+}
+
 @dataclass
 class DatasetConfig:
     """Configuration for a single dataset"""
     path: str
-    type: str  # 'human' or 'drug'
+    type: str  # 'human' or 'drug' or 'paired'
     filter_organism: bool = True
     gene_name_col: Optional[str] = None
     
@@ -47,6 +54,12 @@ class DatasetConfig:
     condition_col: Optional[str] = None
     cell_line_col: Optional[str] = None
     control_condition: Optional[str] = None
+
+    # For paired pre/post datasets
+    patient_col: Optional[str] = None
+    timepoint_col: Optional[str] = None
+    pre_condition: str = "pre"
+    post_condition: str = "post"
     
     def __post_init__(self):
         """Validate configuration"""
@@ -56,18 +69,31 @@ class DatasetConfig:
         elif self.type == 'drug':
             if not self.condition_col or not self.cell_line_col or not self.control_condition:
                 raise ValueError("Drug datasets require condition_col, cell_line_col, and control_condition")
+        elif self.type == 'paired':
+            if not self.patient_col or not self.timepoint_col or not self.cell_type_col:
+                raise ValueError("Paired datasets require patient_col, timepoint_col, cell_type_col")
         else:
             raise ValueError(f"Unknown dataset type: {self.type}")
     
     @property
     def group_col(self) -> str:
-        """Column used for grouping (donor_id for human, condition for drug)"""
-        return self.donor_col if self.type == 'human' else self.condition_col
-    
+        """Column used for grouping (donor_id for human, condition for drug, patient_id for paired)"""
+        if self.type == "human":
+            return self.donor_col
+        if self.type == "drug":
+            return self.condition_col
+        if self.type == "paired":
+            return self.patient_col
+
     @property
     def identity_col(self) -> str:
-        """Column used for cell identity (cell_type for human, cell_line for drug)"""
-        return self.cell_type_col if self.type == 'human' else self.cell_line_col
+        """Column used for cell identity (cell_type for human and paired, cell_line for drug)"""
+        if self.type == "human":
+            return self.cell_type_col
+        if self.type == "drug":
+            return self.cell_line_col
+        if self.type == "paired":
+            return self.cell_type_col
 
 
 def load_gene_list(genelist_path: str) -> List[str]:
@@ -186,6 +212,8 @@ class MultiDatasetMetadataCache:
                 'global_group_ids': self.global_group_ids,
                 'cell_identities': self.cell_identities,
                 'conditions': self.conditions,
+                'patient_ids': self.patient_ids,
+                'timepoints': self.timepoints,
                 'dataset_types': self.dataset_types,
                 'n_cells': self.n_cells,
                 'target_genes': self.target_genes,
@@ -195,6 +223,7 @@ class MultiDatasetMetadataCache:
                 'identity_to_groups_map': self.identity_to_groups_map,
                 'file_identity_pool': self.file_identity_pool,
                 'config_identity_pool': self.config_identity_pool,
+                'paired_group_condition_identity_pool': self.paired_group_condition_identity_pool,
             }
             with open(cache_file, 'wb') as f:
                 pickle.dump(cache_data, f)
@@ -220,20 +249,27 @@ class MultiDatasetMetadataCache:
         if cache_data['target_genes'] != self.target_genes:
             raise ValueError("Target genes in cache don't match current target genes")
         
-        # Verify dataset configs match (simplified check)
-        if len(cache_data['dataset_configs']) != len(self.dataset_configs):
+        # Verify dataset configs match. Paired configs carry semantic columns, so length is not enough.
+        cached_configs = [vars(config) for config in cache_data['dataset_configs']]
+        current_configs = [vars(config) for config in self.dataset_configs]
+        if cached_configs != current_configs:
             raise ValueError("Dataset configurations don't match cache")
         
+        self.patient_ids = cache_data['patient_ids']
+        self.timepoints = cache_data['timepoints']
+
         # CORE FIX: Load acceleration pools from cache
         self.group_identity_pool = cache_data['group_identity_pool']
         self.identity_to_groups_map = cache_data['identity_to_groups_map']
         self.file_identity_pool = cache_data['file_identity_pool']
         self.config_identity_pool = cache_data['config_identity_pool']
+        self.paired_group_condition_identity_pool = cache_data['paired_group_condition_identity_pool']
         
         log.info(f"Loaded acceleration pools from cache:")
         log.info(f"  Group-identity combinations: {len(self.group_identity_pool)}")
         log.info(f"  File-identity combinations: {len(self.file_identity_pool)}")
         log.info(f"  Config-identity combinations: {len(self.config_identity_pool)}")
+        log.info(f"  Paired group-condition-identity combinations: {len(self.paired_group_condition_identity_pool)}")
         log.info(f"  Unique identities: {len(self.identity_to_groups_map)}")
     
     def _build_all_metadata(self):
@@ -243,8 +279,10 @@ class MultiDatasetMetadataCache:
         self.cell_to_file_mapping = []  # Maps global cell index to (file_idx, local_cell_idx)
         self.global_group_ids = []  # Global group IDs for all cells
         self.cell_identities = []  # Cell identity (type/line) for each cell
-        self.conditions = []  # Condition for each cell (human: "human", drug: actual condition)
-        self.dataset_types = []  # Dataset type for each cell ("human" or "drug")
+        self.conditions = []  # Condition for each cell (human: "human", drug: actual condition, paired: pre/post)
+        self.patient_ids = []  # Patient/sample owner for paired datasets; mirrors group for others
+        self.timepoints = []  # Timepoint for paired datasets; mirrors condition for others
+        self.dataset_types = []  # Dataset type for each cell ("human", "drug" or "paired")
         
         global_cell_idx = 0
         global_group_counter = 0
@@ -293,43 +331,64 @@ class MultiDatasetMetadataCache:
                             human_mask = np.ones(n_cells, dtype=bool)
                         
                         # Check required columns
-                        if config.group_col not in obs:
-                            log.warning(f"    '{config.group_col}' column not found, skipping")
+                        required_cols = [config.group_col, config.identity_col]
+                        if config.type == "paired":
+                            required_cols.append(config.timepoint_col)
+
+                        missing_cols = [col for col in required_cols if col not in obs]
+                        if missing_cols:
+                            log.warning(f"    Missing required obs columns {missing_cols}, skipping")
                             continue
-                        
-                        if config.identity_col not in obs:
-                            log.warning(f"    '{config.identity_col}' column not found, skipping")
-                            continue
-                        
-                        # Get group information (donor_id for human, condition for drug)
-                        group_ds = obs[config.group_col]
-                        if "categories" in group_ds:
-                            group_categories = safe_decode_array(group_ds["categories"][:])
-                            group_codes = group_ds["codes"][:]
-                            all_group_values = group_categories[group_codes]
-                        else:
-                            all_group_values = safe_decode_array(group_ds[:])
-                        
-                        # Get cell identity information (cell_type for human, cell_line for drug)
-                        identity_ds = obs[config.identity_col]
-                        if "categories" in identity_ds:
-                            identity_categories = safe_decode_array(identity_ds["categories"][:])
-                            identity_codes = identity_ds["codes"][:]
-                            all_identity_values = identity_categories[identity_codes]
-                        else:
-                            all_identity_values = safe_decode_array(identity_ds[:])
-                        
-                        # Filter all values by organism mask
-                        group_ids = all_group_values[human_mask]
-                        identities = all_identity_values[human_mask]
-                        
-                        # For drug datasets, also get the actual condition column for replacement logic
+
+                        def read_obs_column(col_name: str) -> np.ndarray:
+                            column_ds = obs[col_name]
+                            if "categories" in column_ds:
+                                categories = safe_decode_array(column_ds["categories"][:])
+                                codes = column_ds["codes"][:]
+                                values = np.full(codes.shape, fill_value="", dtype=categories.dtype)
+                                valid_codes = codes != -1
+                                values[valid_codes] = categories[codes[valid_codes]]
+                                return values
+                            return safe_decode_array(column_ds[:])
+
+                        # Get group information (donor for human, condition for drug, patient for paired)
+                        all_group_values = read_obs_column(config.group_col)
+                        # Get cell identity information (cell_type for human/paired, cell_line for drug)
+                        all_identity_values = read_obs_column(config.identity_col)
+
+                        valid_mask = human_mask.copy()
+                        all_timepoint_values = None
+                        if config.type == 'paired':
+                            all_timepoint_values = read_obs_column(config.timepoint_col)
+                            paired_timepoints = np.array([config.pre_condition, config.post_condition], dtype=str)
+                            valid_mask &= np.isin(all_timepoint_values, paired_timepoints)
+                            if not valid_mask.any():
+                                log.warning(
+                                    "    No cells with paired timepoints %s/%s found, skipping",
+                                    config.pre_condition,
+                                    config.post_condition,
+                                )
+                                continue
+
+                        # Filter all values by organism and paired-timepoint masks
+                        group_ids = all_group_values[valid_mask]
+                        identities = all_identity_values[valid_mask]
+
+                        # For drug datasets, condition is the perturbation/control label.
+                        # For paired datasets, condition is the per-cell timepoint.
                         if config.type == 'drug':
-                            # group_ids already contains the condition values
                             current_conditions = group_ids.copy()
-                        else:
-                            # For human datasets, condition is just "human"
+                            current_patient_ids = group_ids.copy()
+                            current_timepoints = current_conditions.copy()
+                        elif config.type == 'human':
                             current_conditions = np.array(["human"] * len(group_ids))
+                            current_patient_ids = group_ids.copy()
+                            current_timepoints = current_conditions.copy()
+                        elif config.type == 'paired':
+                            current_conditions = all_timepoint_values[valid_mask]
+                            current_patient_ids = group_ids.copy()
+                            current_timepoints = current_conditions.copy()
+
                         
                         # Map to global group IDs
                         file_global_groups = []
@@ -342,7 +401,11 @@ class MultiDatasetMetadataCache:
                                     'original_id': str(group_id),
                                     'dataset_type': config.type,
                                     'path': config.path,
-                                    'group_col': config.group_col
+                                    'group_col': config.group_col,
+                                    'identity_col': config.identity_col,
+                                    'timepoint_col': config.timepoint_col if config.type == 'paired' else None,
+                                    'pre_condition': config.pre_condition if config.type == 'paired' else None,
+                                    'post_condition': config.post_condition if config.type == 'paired' else None,
                                 }
                                 global_group_counter += 1
                             file_global_groups.append(group_to_global[group_key])
@@ -392,7 +455,7 @@ class MultiDatasetMetadataCache:
                             'gene_mapping': gene_mapping,
                             'start_cell_idx': global_cell_idx,
                             'end_cell_idx': global_cell_idx + len(file_global_groups),
-                            'organism_mask': human_mask,  # Store mask for later use
+                            'organism_mask': valid_mask,  # Store final obs-row mask for later use
                             'is_sparse': is_sparse,
                             'found_genes': found_genes
                         }
@@ -404,6 +467,8 @@ class MultiDatasetMetadataCache:
                             self.global_group_ids.append(file_global_groups[local_idx])
                             self.cell_identities.append(identities[local_idx])
                             self.conditions.append(current_conditions[local_idx])
+                            self.patient_ids.append(current_patient_ids[local_idx])
+                            self.timepoints.append(current_timepoints[local_idx])
                             self.dataset_types.append(config.type)
                         
                         global_cell_idx += len(file_global_groups)
@@ -417,6 +482,8 @@ class MultiDatasetMetadataCache:
         self.global_group_ids = np.array(self.global_group_ids)
         self.cell_identities = np.array(self.cell_identities)
         self.conditions = np.array(self.conditions)
+        self.patient_ids = np.array(self.patient_ids)
+        self.timepoints = np.array(self.timepoints)
         self.dataset_types = np.array(self.dataset_types)
         
         log.info(f"Loaded metadata for {self.n_cells} cells from {len(self.file_info)} files")
@@ -449,6 +516,9 @@ class MultiDatasetMetadataCache:
         self.file_identity_pool = {}
         # Dictionary D: (identity, config_idx) -> [cell indices list] (for intra-dataset replacement)
         self.config_identity_pool = {}
+        # Dictionary E: (group_id, condition/timepoint, identity) -> [cell indices list]
+        # This is the paired-data lookup needed for same-patient pre/post replacement.
+        self.paired_group_condition_identity_pool = {}
 
         # Build all dictionaries in a single pass
         for cell_idx in range(self.n_cells):
@@ -479,13 +549,25 @@ class MultiDatasetMetadataCache:
             if key_d not in self.config_identity_pool:
                 self.config_identity_pool[key_d] = []
             self.config_identity_pool[key_d].append(cell_idx)
+
+            if self.dataset_types[cell_idx] == "paired":
+                condition = self.conditions[cell_idx]
+                key_e = (group_id, condition, identity)
+                if key_e not in self.paired_group_condition_identity_pool:
+                    self.paired_group_condition_identity_pool[key_e] = []
+                self.paired_group_condition_identity_pool[key_e].append(cell_idx)
         
         # Convert sets to lists for random selection and pool to numpy arrays
         for identity in self.identity_to_groups_map:
             self.identity_to_groups_map[identity] = list(self.identity_to_groups_map[identity])
 
         # <<< OPTIMIZATION >>> Convert lists in pools to numpy arrays for faster indexing
-        for pool in [self.group_identity_pool, self.file_identity_pool, self.config_identity_pool]:
+        for pool in [
+            self.group_identity_pool,
+            self.file_identity_pool,
+            self.config_identity_pool,
+            self.paired_group_condition_identity_pool,
+        ]:
             for key in pool:
                 pool[key] = np.array(pool[key])
 
@@ -493,6 +575,7 @@ class MultiDatasetMetadataCache:
         log.info(f"  Group-identity combinations: {len(self.group_identity_pool)}")
         log.info(f"  File-identity combinations: {len(self.file_identity_pool)}")
         log.info(f"  Config-identity combinations: {len(self.config_identity_pool)}")
+        log.info(f"  Paired group-condition-identity combinations: {len(self.paired_group_condition_identity_pool)}")
         log.info(f"  Unique identities: {len(self.identity_to_groups_map)}")
 
     # <<< OPTIMIZATION 1: High-performance sparse HDF5 reading with block merging >>>
@@ -839,6 +922,9 @@ class MultiDatasetMetadataCache:
             elif sample_dataset_type == 'drug':
                 control_condition = self.dataset_configs[sample_config_idx].control_condition
                 replacement_rule = ('CONTROL_GROUP', control_condition)
+            elif sample_dataset_type == 'paired':
+                pre_condition = self.dataset_configs[sample_config_idx].pre_condition
+                replacement_rule = ('PAIRED_CONDITION', pre_condition)
             else:
                 log.warning(f"Unknown dataset type '{sample_dataset_type}' for identity '{identity}'. Skipping.")
                 unreplaced_cells.extend(original_cells)
@@ -937,6 +1023,14 @@ class MultiDatasetMetadataCache:
         OPTIMIZED: Get candidate cell pool based on identity, rule, and scope using NumPy.
         """
         rule_type = replacement_rule[0]
+
+        if rule_type == 'PAIRED_CONDITION':
+            pre_condition = replacement_rule[1]
+            return self.get_paired_condition_identity_cells(
+                sample_group,
+                pre_condition,
+                identity,
+            )
         
         # Get base candidates from pre-computed pools
         if scope == 'file':
@@ -980,6 +1074,26 @@ class MultiDatasetMetadataCache:
     def get_conditions(self, indices: np.ndarray) -> np.ndarray:
         """Return conditions for the provided cell indices."""
         return self.conditions[indices]
+
+    def get_patient_ids(self, indices: np.ndarray) -> np.ndarray:
+        """Return patient/sample IDs for the provided cell indices."""
+        return self.patient_ids[indices]
+
+    def get_timepoints(self, indices: np.ndarray) -> np.ndarray:
+        """Return paired timepoints or condition placeholders for the provided cell indices."""
+        return self.timepoints[indices]
+
+    def get_paired_condition_identity_cells(
+        self,
+        group_id: int,
+        condition: str,
+        identity: str,
+    ) -> np.ndarray:
+        """Return same-patient paired cells for a timepoint and cell identity."""
+        return self.paired_group_condition_identity_pool.get(
+            (group_id, condition, identity),
+            np.array([], dtype=np.int64),
+        )
     
     def get_dataset_types(self, indices: np.ndarray) -> np.ndarray:
         """Return dataset types for the provided cell indices."""
@@ -998,6 +1112,7 @@ class MultiDatasetMetadataCache:
                 'group_identity_combinations': len(self.group_identity_pool),
                 'file_identity_combinations': len(self.file_identity_pool),
                 'config_identity_combinations': len(self.config_identity_pool),
+                'paired_group_condition_identity_combinations': len(self.paired_group_condition_identity_pool),
                 'unique_identities': len(self.identity_to_groups_map)
             }
         }
@@ -1028,6 +1143,10 @@ class MultiDatasetSplittableDataset(Dataset):
         val_groups: Optional[List[str]] = None,
         test_groups: Optional[List[str]] = None,
         mode: str = 'train',
+        split_strategy: str = "random",
+        fold_index: int = 0,
+        val_fold_offset: int = 1,
+        paired_sampling_method: str = "method1_capacity_strict",
         random_state: Optional[int] = 42,
         resample: bool = False,
         cache_file: Optional[str] = None,
@@ -1053,6 +1172,10 @@ class MultiDatasetSplittableDataset(Dataset):
             val_groups: List of group IDs for validation
             test_groups: List of group IDs for testing
             mode: 'train', 'val', or 'test'
+            split_strategy: 'random' or 'lopo' for leave-one-patient-out paired splits
+            fold_index: Held-out patient fold index for LOPO splits
+            val_fold_offset: Offset from test fold to select validation patient for LOPO splits
+            paired_sampling_method: Paired pre/post set sampling method
             random_state: Random seed
             resample: Whether to resample (for training)
             cache_file: Optional path to cache metadata
@@ -1066,6 +1189,15 @@ class MultiDatasetSplittableDataset(Dataset):
         self.intra_file_replacement_prob = intra_file_replacement_prob  # RESTORED
         self.min_cells_per_group = min_cells_per_group
         self.mode = mode
+        self.split_strategy = split_strategy
+        self.fold_index = fold_index
+        self.val_fold_offset = val_fold_offset
+        if paired_sampling_method not in PAIRED_SAMPLING_METHODS:
+            raise ValueError(
+                f"Unknown paired_sampling_method: {paired_sampling_method}. "
+                f"Expected one of {sorted(PAIRED_SAMPLING_METHODS)}"
+            )
+        self.paired_sampling_method = paired_sampling_method
         self.resample = resample
         
         # Store initial random state for proper multi-process handling
@@ -1084,7 +1216,8 @@ class MultiDatasetSplittableDataset(Dataset):
         
         # Create cache key for singleton
         config_paths = sorted([config.path for config in dataset_configs])
-        cache_key = f"{'_'.join(config_paths)}_{hash(tuple(self.target_genes))}"
+        config_signature = repr([vars(config) for config in dataset_configs])
+        cache_key = f"{'_'.join(config_paths)}_{hash((tuple(self.target_genes), config_signature))}"
         
         # Load metadata with enhanced cache
         self.metadata_cache = MultiDatasetMetadataCache.get_singleton(
@@ -1111,6 +1244,8 @@ class MultiDatasetSplittableDataset(Dataset):
             self.test_groups = test_groups
         else:
             self._split_groups()
+
+        self._validate_paired_preflight()
         
         # Set active groups based on mode
         if mode == 'train':
@@ -1163,16 +1298,19 @@ class MultiDatasetSplittableDataset(Dataset):
         # Split by dataset type to ensure balanced representation
         human_groups = []
         drug_groups = []
+        paired_groups = []
         
         for group_id in valid_groups:
             group_info = self.metadata_cache.group_mapping[group_id]
             config = self.dataset_configs[group_info['config_idx']]
             if config.type == 'human':
                 human_groups.append(group_id)
-            else:
+            elif config.type == 'drug':
                 drug_groups.append(group_id)
+            else:
+                paired_groups.append(group_id)
         
-        log.info(f"Groups by type: {len(human_groups)} human, {len(drug_groups)} drug")
+        log.info(f"Groups by type: {len(human_groups)} human, {len(drug_groups)} drug, {len(paired_groups)} paired")
         
         # Shuffle and split each type separately
         def split_group_list(groups, test_r, val_r):
@@ -1192,21 +1330,180 @@ class MultiDatasetSplittableDataset(Dataset):
             val_groups = shuffled[n_test:n_test+n_val].tolist()
             train_groups = shuffled[n_test+n_val:].tolist()
             return train_groups, val_groups, test_groups
+
+        def split_lopo_groups(groups):
+            if len(groups) == 0:
+                return [], [], []
+            if len(groups) < 3:
+                raise ValueError(
+                    "LOPO split requires at least 3 paired patient groups "
+                    "(train/val/test), got %s" % len(groups)
+                )
+
+            ordered = sorted(
+                groups,
+                key=lambda gid: (self.metadata_cache.group_mapping[gid]["original_id"], gid),
+            )
+            n_groups = len(ordered)
+            if self.fold_index < 0 or self.fold_index >= n_groups:
+                raise ValueError(
+                    f"fold_index must be in [0, {n_groups - 1}] for LOPO split, "
+                    f"got {self.fold_index}"
+                )
+
+            val_offset = self.val_fold_offset % n_groups
+            if val_offset == 0:
+                raise ValueError("val_fold_offset must select a different patient than the test fold")
+
+            test_idx = self.fold_index
+            val_idx = (self.fold_index + val_offset) % n_groups
+            train_groups = [
+                group_id
+                for idx, group_id in enumerate(ordered)
+                if idx not in {test_idx, val_idx}
+            ]
+            val_groups = [ordered[val_idx]]
+            test_groups = [ordered[test_idx]]
+
+            log.info(
+                "LOPO paired split fold %s/%s: train=%s val=%s test=%s",
+                self.fold_index + 1,
+                n_groups,
+                [self.metadata_cache.group_mapping[gid]["original_id"] for gid in train_groups],
+                self.metadata_cache.group_mapping[val_groups[0]]["original_id"],
+                self.metadata_cache.group_mapping[test_groups[0]]["original_id"],
+            )
+            return train_groups, val_groups, test_groups
         
         # Split human groups
         human_train, human_val, human_test = split_group_list(human_groups, test_ratio, val_ratio)
         
         # Split drug groups
         drug_train, drug_val, drug_test = split_group_list(drug_groups, test_ratio, val_ratio)
+
+        # Split paired groups by patient. LOPO keeps each held-out patient fully unseen.
+        if self.split_strategy == "lopo":
+            paired_train, paired_val, paired_test = split_lopo_groups(paired_groups)
+        elif self.split_strategy == "random":
+            paired_train, paired_val, paired_test = split_group_list(paired_groups, test_ratio, val_ratio)
+        else:
+            raise ValueError(f"Unknown split_strategy: {self.split_strategy}")
         
         # Combine splits
-        self.train_groups = human_train + drug_train
-        self.val_groups = human_val + drug_val
-        self.test_groups = human_test + drug_test
+        self.train_groups = human_train + drug_train + paired_train
+        self.val_groups = human_val + drug_val + paired_val
+        self.test_groups = human_test + drug_test + paired_test
         
         log.info(f"Split groups: {len(self.train_groups)} train, {len(self.val_groups)} val, {len(self.test_groups)} test")
         log.info(f"  Human - train: {len(human_train)}, val: {len(human_val)}, test: {len(human_test)}")
         log.info(f"  Drug - train: {len(drug_train)}, val: {len(drug_val)}, test: {len(drug_test)}")
+        log.info(f"  Paired - train: {len(paired_train)}, val: {len(paired_val)}, test: {len(paired_test)}")
+
+    def _is_paired_group(self, group_id: int) -> bool:
+        group_info = self.metadata_cache.group_mapping[group_id]
+        config = self.dataset_configs[group_info['config_idx']]
+        return config.type == 'paired'
+
+    def _paired_group_label(self, group_id: int) -> str:
+        return str(self.metadata_cache.group_mapping[group_id]['original_id'])
+
+    def _paired_groups_from_split(self, groups: List[int]) -> List[int]:
+        return [group_id for group_id in groups if self._is_paired_group(group_id)]
+
+    def _paired_group_feasibility_error(
+        self,
+        group_id: int,
+        n_kept: int,
+        n_replaced: int,
+    ) -> Optional[str]:
+        group_info = self.metadata_cache.group_mapping[group_id]
+        config = self.dataset_configs[group_info['config_idx']]
+        pools = self._get_common_paired_pools(group_id, config)
+        if not pools:
+            return (
+                f"no common {config.pre_condition}/{config.post_condition} "
+                f"{config.identity_col} pools"
+            )
+
+        total_post = sum(len(pool["post"]) for pool in pools.values())
+        total_pre = sum(len(pool["pre"]) for pool in pools.values())
+        if total_post < self.sample_size:
+            return (
+                f"only {total_post} common {config.post_condition} cells; "
+                f"sample_size={self.sample_size}"
+            )
+        if total_pre <= 0:
+            return f"no common {config.pre_condition} cells"
+
+        counts, _ = self._build_paired_sampling_counts(
+            pools,
+            n_kept,
+            n_replaced,
+            preserve_rng=True,
+        )
+        if counts is None:
+            return (
+                f"{self.paired_sampling_method} cannot allocate "
+                f"sample_size={self.sample_size}, n_kept={n_kept}, "
+                f"n_replaced={n_replaced} from pre/post cell-type capacities"
+            )
+        return None
+
+    def _validate_paired_preflight(self) -> None:
+        """Fail early when paired split/sample settings cannot produce valid samples."""
+        split_groups = {
+            "train": self.train_groups,
+            "val": self.val_groups,
+            "test": self.test_groups,
+        }
+        paired_by_split = {
+            split: self._paired_groups_from_split(groups)
+            for split, groups in split_groups.items()
+        }
+        all_paired_groups = sorted(
+            set().union(*[set(groups) for groups in paired_by_split.values()])
+        )
+        if not all_paired_groups:
+            return
+
+        if self.split_strategy == "lopo":
+            empty_splits = [
+                split for split, groups in paired_by_split.items() if not groups
+            ]
+            if empty_splits:
+                raise ValueError(
+                    "LOPO paired split produced empty paired split(s): "
+                    + ", ".join(empty_splits)
+                )
+
+        n_replaced = int(self.sample_size * self.replacement_ratio)
+        n_kept = self.sample_size - n_replaced
+        if n_kept <= 0 or n_replaced <= 0:
+            raise ValueError(
+                "Paired sampling requires both prompt and query cells; "
+                f"got sample_size={self.sample_size}, "
+                f"replacement_ratio={self.replacement_ratio}, "
+                f"n_kept={n_kept}, n_replaced={n_replaced}"
+            )
+
+        errors = []
+        for split, groups in paired_by_split.items():
+            for group_id in groups:
+                error = self._paired_group_feasibility_error(
+                    group_id,
+                    n_kept,
+                    n_replaced,
+                )
+                if error:
+                    errors.append(
+                        f"{split} patient {self._paired_group_label(group_id)}: {error}"
+                    )
+
+        if errors:
+            message = "; ".join(errors[:10])
+            if len(errors) > 10:
+                message += f"; ... and {len(errors) - 10} more"
+            raise ValueError(f"Paired sampling preflight failed: {message}")
     
     # <<< CORE OPTIMIZATION: Locality-aware sampling strategy >>>
     def _generate_samples_by_locality(self):
@@ -1237,6 +1534,10 @@ class MultiDatasetSplittableDataset(Dataset):
         for i in range(self.metadata_cache.n_cells):
             group_id = self.metadata_cache.global_group_ids[i]
             if group_id in active_groups_set:
+                group_info = self.metadata_cache.group_mapping[group_id]
+                config = self.dataset_configs[group_info['config_idx']]
+                if config.type == 'paired' and self.metadata_cache.conditions[i] != config.post_condition:
+                    continue
                 file_idx, local_row_idx = self.metadata_cache.cell_to_file_mapping[i]
                 file_group_key = (file_idx, group_id)
                 if file_group_key not in cells_by_file_group:
@@ -1289,8 +1590,375 @@ class MultiDatasetSplittableDataset(Dataset):
         if self.samples:
             human_samples = sum(1 for _, _, dtype, _ in self.samples if dtype == 'human')
             drug_samples = sum(1 for _, _, dtype, _ in self.samples if dtype == 'drug')
-            log.info(f"  Samples by type: {human_samples} human, {drug_samples} drug")
+            paired_samples = sum(1 for _, _, dtype, _ in self.samples if dtype == 'paired')
+            log.info(f"  Samples by type: {human_samples} human, {drug_samples} drug, {paired_samples} paired")
             log.info(f"  Average I/O locality: {total_samples_created} contiguous blocks preserving group semantics")
+
+    def _get_common_paired_pools(
+        self,
+        group_id: int,
+        config: DatasetConfig,
+    ) -> "OrderedDict[str, Dict[str, np.ndarray]]":
+        """Return same-patient pre/post pools keyed by common cell identity."""
+        pool_dict = getattr(self.metadata_cache, "paired_group_condition_identity_pool", {})
+        post_identities = set()
+        pre_identities = set()
+
+        for key, pool in pool_dict.items():
+            if len(key) != 3:
+                continue
+            key_group_id, condition, identity = key
+            if key_group_id != group_id or len(pool) == 0:
+                continue
+            if condition == config.post_condition:
+                post_identities.add(identity)
+            elif condition == config.pre_condition:
+                pre_identities.add(identity)
+
+        common_identities = sorted(post_identities & pre_identities, key=str)
+        pools = OrderedDict()
+        for identity in common_identities:
+            post_pool = np.asarray(
+                self.metadata_cache.get_paired_condition_identity_cells(
+                    group_id,
+                    config.post_condition,
+                    identity,
+                ),
+                dtype=np.int64,
+            )
+            pre_pool = np.asarray(
+                self.metadata_cache.get_paired_condition_identity_cells(
+                    group_id,
+                    config.pre_condition,
+                    identity,
+                ),
+                dtype=np.int64,
+            )
+            if len(post_pool) > 0 and len(pre_pool) > 0:
+                pools[identity] = {"post": post_pool, "pre": pre_pool}
+
+        return pools
+
+    def _allocate_counts_by_capacity(
+        self,
+        capacities: Dict[str, int],
+        total: int,
+    ) -> Optional[Dict[str, int]]:
+        """
+        Allocate exact counts while preserving low-abundance identities first.
+
+        Identities below the per-type average keep their full capacity. Remaining
+        quota is filled from identities with spare capacity, weighted by that
+        remaining capacity.
+        """
+        if total < 0:
+            return None
+        if self.rng is None:
+            self._initialize_rng()
+
+        capacities = OrderedDict(
+            (identity, int(capacity))
+            for identity, capacity in capacities.items()
+            if int(capacity) > 0
+        )
+        if total == 0:
+            return {identity: 0 for identity in capacities}
+        if not capacities or sum(capacities.values()) < total:
+            return None
+
+        target_per_type = total / len(capacities)
+        base_count = int(math.floor(target_per_type))
+        counts = OrderedDict()
+
+        for identity, capacity in capacities.items():
+            if capacity <= target_per_type:
+                counts[identity] = capacity
+            else:
+                counts[identity] = min(capacity, base_count)
+
+        remaining = total - sum(counts.values())
+        while remaining > 0:
+            open_identities = [
+                identity
+                for identity, capacity in capacities.items()
+                if counts[identity] < capacity
+            ]
+            if not open_identities:
+                return None
+
+            weights = np.array(
+                [capacities[identity] - counts[identity] for identity in open_identities],
+                dtype=np.float64,
+            )
+            weights = weights / weights.sum()
+            chosen_idx = self.rng.choice(len(open_identities), p=weights)
+            counts[open_identities[chosen_idx]] += 1
+            remaining -= 1
+
+        return dict(counts)
+
+    def _build_method1_capacity_strict_counts(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        n_kept: int,
+        n_replaced: int,
+    ) -> Optional[Tuple[Dict[str, int], Dict[str, int]]]:
+        """Method 1: pre/post capacity-aware, strict no-repeat pre sampling."""
+        query_capacities = OrderedDict(
+            (identity, min(len(pool["post"]), len(pool["pre"])))
+            for identity, pool in pools.items()
+        )
+        query_counts = self._allocate_counts_by_capacity(query_capacities, n_replaced)
+        if query_counts is None:
+            return None
+
+        prompt_capacities = OrderedDict(
+            (identity, len(pool["post"]) - query_counts.get(identity, 0))
+            for identity, pool in pools.items()
+        )
+        prompt_counts = self._allocate_counts_by_capacity(prompt_capacities, n_kept)
+        if prompt_counts is None:
+            return None
+
+        post_counts = {
+            identity: query_counts.get(identity, 0) + prompt_counts.get(identity, 0)
+            for identity in pools
+        }
+        return post_counts, query_counts
+
+    def _build_method2_capacity_repeat_pre_counts(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        n_kept: int,
+        n_replaced: int,
+    ) -> Optional[Tuple[Dict[str, int], Dict[str, int]]]:
+        """Method 2: pre/post capacity-aware, repeat pre cells only if needed."""
+        query_capacities = OrderedDict(
+            (identity, len(pool["post"]))
+            for identity, pool in pools.items()
+        )
+        query_counts = self._allocate_counts_by_capacity(query_capacities, n_replaced)
+        if query_counts is None:
+            return None
+
+        prompt_capacities = OrderedDict(
+            (identity, len(pool["post"]) - query_counts.get(identity, 0))
+            for identity, pool in pools.items()
+        )
+        prompt_counts = self._allocate_counts_by_capacity(prompt_capacities, n_kept)
+        if prompt_counts is None:
+            return None
+
+        post_counts = {
+            identity: query_counts.get(identity, 0) + prompt_counts.get(identity, 0)
+            for identity in pools
+        }
+        return post_counts, query_counts
+
+    def _build_method3_post_only_strict_counts(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        n_replaced: int,
+    ) -> Optional[Tuple[Dict[str, int], Dict[str, int]]]:
+        """Method 3: post-only set plan, strict no-repeat pre replacement."""
+        post_capacities = OrderedDict(
+            (identity, len(pool["post"]))
+            for identity, pool in pools.items()
+        )
+        post_counts = self._allocate_counts_by_capacity(post_capacities, self.sample_size)
+        if post_counts is None:
+            return None
+
+        query_capacities = OrderedDict(
+            (identity, min(post_counts.get(identity, 0), len(pool["pre"])))
+            for identity, pool in pools.items()
+        )
+        query_counts = self._allocate_counts_by_capacity(query_capacities, n_replaced)
+        if query_counts is None:
+            return None
+
+        return post_counts, query_counts
+
+    def _build_method4_post_only_repeat_pre_counts(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        n_replaced: int,
+    ) -> Optional[Tuple[Dict[str, int], Dict[str, int]]]:
+        """Method 4: post-only set plan, repeat pre cells only if needed."""
+        post_capacities = OrderedDict(
+            (identity, len(pool["post"]))
+            for identity, pool in pools.items()
+        )
+        post_counts = self._allocate_counts_by_capacity(post_capacities, self.sample_size)
+        if post_counts is None:
+            return None
+
+        query_capacities = OrderedDict(
+            (identity, post_counts.get(identity, 0))
+            for identity in pools
+        )
+        query_counts = self._allocate_counts_by_capacity(query_capacities, n_replaced)
+        if query_counts is None:
+            return None
+
+        return post_counts, query_counts
+
+    def _build_paired_sampling_counts(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        n_kept: int,
+        n_replaced: int,
+        preserve_rng: bool = False,
+    ) -> Tuple[Optional[Tuple[Dict[str, int], Dict[str, int]]], bool]:
+        """Return paired post/query counts and whether pre cells may repeat."""
+        rng_state = None
+        if preserve_rng and self.rng is not None:
+            rng_state = self.rng.get_state()
+
+        try:
+            if self.paired_sampling_method == "method1_capacity_strict":
+                counts = self._build_method1_capacity_strict_counts(
+                    pools,
+                    n_kept,
+                    n_replaced,
+                )
+                allow_pre_repeat = False
+            elif self.paired_sampling_method == "method2_capacity_repeat_pre":
+                counts = self._build_method2_capacity_repeat_pre_counts(
+                    pools,
+                    n_kept,
+                    n_replaced,
+                )
+                allow_pre_repeat = True
+            elif self.paired_sampling_method == "method3_post_only_strict":
+                counts = self._build_method3_post_only_strict_counts(
+                    pools,
+                    n_replaced,
+                )
+                allow_pre_repeat = False
+            elif self.paired_sampling_method == "method4_post_only_repeat_pre":
+                counts = self._build_method4_post_only_repeat_pre_counts(
+                    pools,
+                    n_replaced,
+                )
+                allow_pre_repeat = True
+            else:
+                raise ValueError(f"Unknown paired_sampling_method: {self.paired_sampling_method}")
+            return counts, allow_pre_repeat
+        finally:
+            if rng_state is not None:
+                self.rng.set_state(rng_state)
+
+    def _assemble_paired_balanced_sample(
+        self,
+        pools: "OrderedDict[str, Dict[str, np.ndarray]]",
+        post_counts: Dict[str, int],
+        query_counts: Dict[str, int],
+        allow_pre_repeat: bool,
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, Any, Dict[str, Any]]]:
+        """Sample post prompt/query cells and matched pre query replacements."""
+        if self.rng is None:
+            self._initialize_rng()
+
+        prompt_post_indices = []
+        target_post_indices = []
+        pre_replacement_indices = []
+
+        for identity, pool in pools.items():
+            post_count = int(post_counts.get(identity, 0))
+            query_count = int(query_counts.get(identity, 0))
+            if post_count == 0:
+                continue
+            if query_count > post_count:
+                return None
+
+            post_pool = pool["post"]
+            pre_pool = pool["pre"]
+            if post_count > len(post_pool) or query_count > 0 and len(pre_pool) == 0:
+                return None
+            if query_count > len(pre_pool) and not allow_pre_repeat:
+                return None
+
+            selected_post = self.rng.choice(post_pool, size=post_count, replace=False)
+            selected_post = selected_post[self.rng.permutation(len(selected_post))]
+            target_post = selected_post[:query_count]
+            prompt_post = selected_post[query_count:]
+
+            if query_count > 0:
+                replace_pre = allow_pre_repeat and query_count > len(pre_pool)
+                selected_pre = self.rng.choice(pre_pool, size=query_count, replace=replace_pre)
+                target_post_indices.extend(target_post.tolist())
+                pre_replacement_indices.extend(selected_pre.tolist())
+
+            prompt_post_indices.extend(prompt_post.tolist())
+
+        prompt_post_indices = np.asarray(prompt_post_indices, dtype=np.int64)
+        target_post_indices = np.asarray(target_post_indices, dtype=np.int64)
+        pre_replacement_indices = np.asarray(pre_replacement_indices, dtype=np.int64)
+
+        if len(prompt_post_indices) + len(target_post_indices) != self.sample_size:
+            return None
+        if len(target_post_indices) != int(self.sample_size * self.replacement_ratio):
+            return None
+        if len(prompt_post_indices) > 0:
+            prompt_post_indices = prompt_post_indices[
+                self.rng.permutation(len(prompt_post_indices))
+            ]
+        if len(target_post_indices) > 0:
+            query_order = self.rng.permutation(len(target_post_indices))
+            target_post_indices = target_post_indices[query_order]
+            pre_replacement_indices = pre_replacement_indices[query_order]
+
+        left_side_indices = np.concatenate([prompt_post_indices, target_post_indices])
+        right_side_indices = np.concatenate([prompt_post_indices, pre_replacement_indices])
+        position_mask = torch.from_numpy(np.ones(len(left_side_indices), dtype=bool))
+
+        metadata = {
+            "paired_sampling_method": self.paired_sampling_method,
+            "paired_post_type_counts": {
+                str(identity): int(count)
+                for identity, count in post_counts.items()
+                if int(count) > 0
+            },
+            "paired_query_type_counts": {
+                str(identity): int(count)
+                for identity, count in query_counts.items()
+                if int(count) > 0
+            },
+            "paired_common_cell_types": len(pools),
+            "paired_pre_repeated": len(np.unique(pre_replacement_indices)) < len(pre_replacement_indices),
+        }
+
+        return left_side_indices, right_side_indices, position_mask, metadata
+
+    def _build_paired_balanced_sample(
+        self,
+        group_id: int,
+        config: DatasetConfig,
+    ) -> Optional[Tuple[np.ndarray, np.ndarray, Any, Dict[str, Any]]]:
+        """Build a paired sample with an explicit prompt/query boundary."""
+        pools = self._get_common_paired_pools(group_id, config)
+        if not pools:
+            return None
+
+        n_replaced = int(self.sample_size * self.replacement_ratio)
+        n_kept = self.sample_size - n_replaced
+
+        counts, allow_pre_repeat = self._build_paired_sampling_counts(
+            pools,
+            n_kept,
+            n_replaced,
+        )
+        if counts is None:
+            return None
+
+        post_counts, query_counts = counts
+        return self._assemble_paired_balanced_sample(
+            pools,
+            post_counts,
+            query_counts,
+            allow_pre_repeat,
+        )
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Dict[str, Any]]:
         """
@@ -1307,6 +1975,49 @@ class MultiDatasetSplittableDataset(Dataset):
         
         # Get basic sample information
         group_id, original_group_id, dataset_type, cell_indices = self.samples[idx]
+
+        if dataset_type == 'paired':
+            group_info = self.metadata_cache.group_mapping[group_id]
+            config = self.dataset_configs[group_info['config_idx']]
+            paired_sample = self._build_paired_balanced_sample(group_id, config)
+            if paired_sample is None:
+                raise RuntimeError(
+                    "Unable to build paired pre/post sample for group "
+                    f"{original_group_id} with method {self.paired_sampling_method}. "
+                    "Try a repeat-pre method, a smaller sample_size, or a lower replacement_ratio."
+                )
+
+            left_side_indices, right_side_indices, position_mask, paired_metadata = paired_sample
+            cell_identities_str = self.metadata_cache.get_cell_identities(left_side_indices)
+            cell_type_ids = [self.identity_to_id_map[s] for s in cell_identities_str]
+            cell_type_ids_tensor = torch.LongTensor(cell_type_ids)
+
+            unique_indices_to_load, inverse_map = np.unique(
+                np.concatenate([left_side_indices, right_side_indices]),
+                return_inverse=True
+            )
+            unique_data = self.metadata_cache.load_expression_data(unique_indices_to_load)
+            full_data = unique_data[inverse_map]
+
+            n_left = len(left_side_indices)
+            left_matrix = full_data[:n_left]
+            right_matrix = full_data[n_left:]
+
+            ground_truth_tensor = torch.from_numpy(left_matrix).float()
+            observed_tensor = torch.from_numpy(right_matrix).float()
+
+            n_replaced = int(self.sample_size * self.replacement_ratio)
+            metadata = {
+                'group_id': str(group_id),
+                'original_group_id': str(original_group_id),
+                'dataset_type': dataset_type,
+                'sampled_cell_count': len(cell_indices),
+                'n_kept': len(left_side_indices) - n_replaced,
+                'n_replaced': n_replaced,
+            }
+            metadata.update(paired_metadata)
+
+            return ground_truth_tensor, observed_tensor, cell_type_ids_tensor, position_mask, metadata
 
         # RESTORED: Decide replacement strategy based on probability
         use_intra_file_first = self.rng.random() < self.intra_file_replacement_prob
@@ -2045,6 +2756,10 @@ def create_train_val_test_datasets(
     min_cells_per_group: int = 128,
     test_ratio: float = 0.2,
     val_ratio: float = 0.2,
+    split_strategy: str = "random",
+    fold_index: int = 0,
+    val_fold_offset: int = 1,
+    paired_sampling_method: str = "method1_capacity_strict",
     random_state: int = 42,
     cache_file: Optional[str] = None,
     max_memory_gb: Optional[float] = None,  # RESTORED
@@ -2064,6 +2779,10 @@ def create_train_val_test_datasets(
         min_cells_per_group: Min cells required per group
         test_ratio: Fraction of groups for testing
         val_ratio: Fraction of groups for validation
+        split_strategy: 'random' or 'lopo' for leave-one-patient-out paired splits
+        fold_index: Held-out patient fold index for LOPO splits
+        val_fold_offset: Offset from test fold to select validation patient for LOPO splits
+        paired_sampling_method: Paired pre/post set sampling method
         random_state: Random seed
         cache_file: Optional path to cache metadata
         max_memory_gb: Maximum memory usage in GB (for compatibility)
@@ -2083,6 +2802,10 @@ def create_train_val_test_datasets(
         genelist_path=genelist_path,
         sample_size=min_cells_per_group, # Use min_cells_per_group for splitting logic
         mode='train', # a placeholder mode
+        split_strategy=split_strategy,
+        fold_index=fold_index,
+        val_fold_offset=val_fold_offset,
+        paired_sampling_method=paired_sampling_method,
         random_state=random_state,
         resample=False,
         cache_file=cache_file,
@@ -2112,6 +2835,10 @@ def create_train_val_test_datasets(
         val_groups=val_groups,
         test_groups=test_groups,
         mode='train',
+        split_strategy=split_strategy,
+        fold_index=fold_index,
+        val_fold_offset=val_fold_offset,
+        paired_sampling_method=paired_sampling_method,
         random_state=random_state,
         resample=True,  # Enable resampling for training data
         cache_file=cache_file,
@@ -2133,6 +2860,10 @@ def create_train_val_test_datasets(
         val_groups=val_groups,
         test_groups=test_groups,
         mode='val',
+        split_strategy=split_strategy,
+        fold_index=fold_index,
+        val_fold_offset=val_fold_offset,
+        paired_sampling_method=paired_sampling_method,
         random_state=random_state,
         resample=False,
         cache_file=cache_file,
@@ -2154,6 +2885,10 @@ def create_train_val_test_datasets(
         val_groups=val_groups,
         test_groups=test_groups,
         mode='test',
+        split_strategy=split_strategy,
+        fold_index=fold_index,
+        val_fold_offset=val_fold_offset,
+        paired_sampling_method=paired_sampling_method,
         random_state=random_state,
         resample=False,
         cache_file=cache_file,
@@ -2237,6 +2972,10 @@ def create_datasets_from_gene_list(
     min_cells_per_group: int = 128,
     test_ratio: float = 0.2,
     val_ratio: float = 0.2,
+    split_strategy: str = "random",
+    fold_index: int = 0,
+    val_fold_offset: int = 1,
+    paired_sampling_method: str = "method1_capacity_strict",
     random_state: int = 42,
     cache_file: Optional[str] = None,
     max_memory_gb: Optional[float] = None,  # RESTORED
@@ -2255,6 +2994,10 @@ def create_datasets_from_gene_list(
         min_cells_per_group: Min cells required per group
         test_ratio: Fraction of groups for testing
         val_ratio: Fraction of groups for validation
+        split_strategy: 'random' or 'lopo' for leave-one-patient-out paired splits
+        fold_index: Held-out patient fold index for LOPO splits
+        val_fold_offset: Offset from test fold to select validation patient for LOPO splits
+        paired_sampling_method: Paired pre/post set sampling method
         random_state: Random seed
         cache_file: Optional path to cache metadata
         max_memory_gb: Maximum memory usage in GB (for compatibility)
@@ -2276,6 +3019,10 @@ def create_datasets_from_gene_list(
         min_cells_per_group=min_cells_per_group,
         test_ratio=test_ratio,
         val_ratio=val_ratio,
+        split_strategy=split_strategy,
+        fold_index=fold_index,
+        val_fold_offset=val_fold_offset,
+        paired_sampling_method=paired_sampling_method,
         random_state=random_state,
         cache_file=cache_file,
         max_memory_gb=max_memory_gb,

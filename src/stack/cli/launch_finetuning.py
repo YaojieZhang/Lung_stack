@@ -131,6 +131,32 @@ def build_parser(parents=None) -> argparse.ArgumentParser:
     parser.add_argument("--min_cells_per_group", type=int, default=128, help="Minimum cells per group")
     parser.add_argument("--test_ratio", type=float, default=0.1, help="Test split ratio")
     parser.add_argument("--val_ratio", type=float, default=0.1, help="Validation split ratio")
+    parser.add_argument(
+        "--split_strategy",
+        type=str,
+        choices=["random", "lopo"],
+        default="random",
+        help="Group split strategy. Use 'lopo' for leave-one-patient-out paired datasets.",
+    )
+    parser.add_argument("--fold_index", type=int, default=0, help="LOPO fold index used when split_strategy='lopo'")
+    parser.add_argument(
+        "--val_fold_offset",
+        type=int,
+        default=1,
+        help="Validation patient offset from the held-out test patient for LOPO splits",
+    )
+    parser.add_argument(
+        "--paired_sampling_method",
+        type=str,
+        choices=[
+            "method1_capacity_strict",
+            "method2_capacity_repeat_pre",
+            "method3_post_only_strict",
+            "method4_post_only_repeat_pre",
+        ],
+        default="method1_capacity_strict",
+        help="Paired pre/post sampling method for NSCLC fine-tuning datasets",
+    )
     parser.add_argument("--random_seed", type=int, default=42, help="Random seed")
     parser.add_argument("--cache_file", type=str, default=None, help="Path to metadata cache file")
     parser.add_argument("--max_memory_gb", type=float, default=None, help="Maximum memory usage in GB")
@@ -219,27 +245,74 @@ def log_configuration(args: argparse.Namespace, model_config: Dict[str, any], da
         logging.info("  Dataset %s: %s - %s", idx + 1, config.type, config.path)
         if config.type == "human":
             logging.info("    Donor col: %s, Cell type col: %s", config.donor_col, config.cell_type_col)
-        else:
+        elif config.type == "drug":
             logging.info(
                 "    Condition col: %s, Cell line col: %s, Control condition: %s",
                 config.condition_col,
                 config.cell_line_col,
                 config.control_condition,
             )
+        elif config.type == "paired":
+            logging.info(
+                "    Patient col: %s, Timepoint col: %s, Cell type col: %s, Pre/Post: %s/%s",
+                config.patient_col,
+                config.timepoint_col,
+                config.cell_type_col,
+                config.pre_condition,
+                config.post_condition,
+            )
         logging.info("    Filter organism: %s", config.filter_organism)
     logging.info("Gene list: %s (%s genes)", args.genelist_path, data_module.n_genes)
     logging.info("Sample size: %s", args.sample_size)
+    logging.info("Split strategy: %s (fold=%s, val_offset=%s)", args.split_strategy, args.fold_index, args.val_fold_offset)
+    logging.info("Paired sampling method: %s", args.paired_sampling_method)
     logging.info("N kept cells (Student): %s", int((1.0 - args.replacement_ratio) * args.sample_size))
     logging.info("Batch size: %s", args.batch_size)
     logging.info("Learning rate: %s", args.learning_rate)
     logging.info("Max epochs: %s", args.max_epochs)
+    logging.info("Save dir: %s", args.save_dir)
+    logging.info("Run name: %s", args.run_name)
     logging.info("Logger: %s", type(logger).__name__)
     logging.info("=" * 80)
 
 
+def validate_model_gene_dimension(model_config: Dict[str, any], data_n_genes: int) -> None:
+    """Ensure checkpoint gene dimension matches the prepared dataset."""
+    model_n_genes = model_config.get("n_genes")
+    if model_n_genes is None:
+        raise ValueError("Checkpoint model_config is missing required n_genes")
+    if int(model_n_genes) != int(data_n_genes):
+        raise ValueError(
+            "Checkpoint n_genes does not match fine-tuning data: "
+            f"checkpoint={model_n_genes}, data={data_n_genes}. "
+            "Use the checkpoint's gene list or rebuild a compatible checkpoint."
+        )
+
+
+def prepare_lopo_output_paths(args: argparse.Namespace) -> None:
+    """Keep LOPO fold artifacts separated and named by fold/seed."""
+    if args.split_strategy != "lopo":
+        return
+
+    fold_component = f"fold_{args.fold_index}"
+    normalized_save_dir = os.path.normpath(args.save_dir)
+    if os.path.basename(normalized_save_dir) == fold_component:
+        args.save_dir = normalized_save_dir
+    else:
+        args.save_dir = os.path.join(args.save_dir, fold_component)
+
+    run_component = f"{fold_component}_seed_{args.random_seed}"
+    if args.run_name:
+        if run_component not in args.run_name:
+            args.run_name = f"{args.run_name}_{run_component}"
+    else:
+        args.run_name = run_component
+
+
 def main() -> None:
     config_parser = argparse.ArgumentParser(add_help=False)
-    config_parser.add_argument("--config", type=str, default=None, help="Path to a YAML/JSON config file")
+    # config_parser.add_argument("--config", type=str, default=None, help="Path to a YAML/JSON config file")
+    config_parser.add_argument("--config", type=str, default="/data/home/zhangyaojie/Lung_stack/configs/finetuning/ft_parsecg.yaml")
 
     parser = build_parser(parents=[config_parser])
 
@@ -247,6 +320,7 @@ def main() -> None:
     apply_config_from_file(parser, config_args.config)
     args = parser.parse_args(remaining_argv)
     filter_unused_arguments(args, ("dataset_configs", "genelist_path"), parser)
+    prepare_lopo_output_paths(args)
 
     deps = _import_training_modules()
     torch = deps["torch"]
@@ -280,6 +354,10 @@ def main() -> None:
         sample_size=args.sample_size,
         test_ratio=args.test_ratio,
         val_ratio=args.val_ratio,
+        split_strategy=args.split_strategy,
+        fold_index=args.fold_index,
+        val_fold_offset=args.val_fold_offset,
+        paired_sampling_method=args.paired_sampling_method,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         random_state=args.random_seed,
@@ -316,6 +394,7 @@ def main() -> None:
     if args.checkpoint_path:
         logging.info("Loading model from checkpoint: %s", args.checkpoint_path)
         model_config = override_model_config_n_cells(args.checkpoint_path, args.sample_size)
+        validate_model_gene_dimension(model_config, data_module.n_genes)
 
         student_model = LightningFinetunedModel.load_from_checkpoint(
             checkpoint_path=args.checkpoint_path,

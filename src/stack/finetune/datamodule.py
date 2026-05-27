@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
@@ -25,6 +25,10 @@ class FinetuneDataModule(pl.LightningDataModule):
         min_cells_per_group: int = 128,
         test_ratio: float = 0.2,
         val_ratio: float = 0.2,
+        split_strategy: str = "random",
+        fold_index: int = 0,
+        val_fold_offset: int = 1,
+        paired_sampling_method: str = "method1_capacity_strict",
         batch_size: int = 16,
         num_workers: int = 4,
         pin_memory: bool = True,
@@ -44,6 +48,10 @@ class FinetuneDataModule(pl.LightningDataModule):
         self.min_cells_per_group = min_cells_per_group
         self.test_ratio = test_ratio
         self.val_ratio = val_ratio
+        self.split_strategy = split_strategy
+        self.fold_index = fold_index
+        self.val_fold_offset = val_fold_offset
+        self.paired_sampling_method = paired_sampling_method
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.pin_memory = pin_memory
@@ -79,6 +87,10 @@ class FinetuneDataModule(pl.LightningDataModule):
                 min_cells_per_group=self.min_cells_per_group,
                 test_ratio=self.test_ratio,
                 val_ratio=self.val_ratio,
+                split_strategy=self.split_strategy,
+                fold_index=self.fold_index,
+                val_fold_offset=self.val_fold_offset,
+                paired_sampling_method=self.paired_sampling_method,
                 random_state=self.random_state,
                 cache_file=self.cache_file,
                 max_memory_gb=self.max_memory_gb,
@@ -138,13 +150,41 @@ class FinetuneDataModule(pl.LightningDataModule):
     # ------------------------------------------------------------------
     # Introspection helpers
     # ------------------------------------------------------------------
-    def get_split_info(self) -> Dict[str, List[str]]:
+    @staticmethod
+    def _json_safe_group_id(group_id: Any) -> Any:
+        if hasattr(group_id, "item"):
+            try:
+                return group_id.item()
+            except ValueError:
+                return group_id
+        return group_id
+
+    def _group_labels_for_split(self, groups: List[Any]) -> List[str]:
         if self.train_dataset is None:
             raise RuntimeError("Datasets have not been initialized. Call setup('fit') first.")
+
+        metadata_cache = getattr(self.train_dataset, "metadata_cache", None)
+        group_mapping = getattr(metadata_cache, "group_mapping", {})
+        labels = []
+        for group_id in groups:
+            safe_group_id = self._json_safe_group_id(group_id)
+            group_info = group_mapping.get(safe_group_id, group_mapping.get(group_id, {}))
+            labels.append(str(group_info.get("original_id", safe_group_id)))
+        return labels
+
+    def get_split_info(self) -> Dict[str, List[Any]]:
+        if self.train_dataset is None:
+            raise RuntimeError("Datasets have not been initialized. Call setup('fit') first.")
+        train_groups = getattr(self.train_dataset, "train_groups", [])
+        val_groups = getattr(self.train_dataset, "val_groups", [])
+        test_groups = getattr(self.train_dataset, "test_groups", [])
         return {
-            "train_groups": getattr(self.train_dataset, "train_groups", []),
-            "validation_groups": getattr(self.train_dataset, "val_groups", []),
-            "test_groups": getattr(self.train_dataset, "test_groups", []),
+            "train_groups": [self._json_safe_group_id(group_id) for group_id in train_groups],
+            "validation_groups": [self._json_safe_group_id(group_id) for group_id in val_groups],
+            "test_groups": [self._json_safe_group_id(group_id) for group_id in test_groups],
+            "train_patients": self._group_labels_for_split(train_groups),
+            "val_patients": self._group_labels_for_split(val_groups),
+            "test_patients": self._group_labels_for_split(test_groups),
         }
 
 

@@ -1,11 +1,10 @@
-checkpoint_path: "Stack-Large/bc_large.ckpt"
+checkpoint_path: "/data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/bc_large_aligned.ckpt"
 dataset_configs:
-  - "human:parse_bio:sample:cell_type:false"
-  - "human:Stack-CellxGene45M:donor_id:author_cell_type:true:feature_name"
-genelist_path: "Stack-Large-Aligned/basecount_1000per_15000max.pkl"
-save_dir: "stack_checkpoints/bc_large_aligned"
+  - "paired:/data/home/zhangyaojie/data/NG/neoadjuvant_paired:Patient:Timepoint:cell_type:Pre-biopsy:Post-surgery:false:gene_symbols"
+genelist_path: "/data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl"
+save_dir: "/data/home/zhangyaojie/Lung_stack/outputs/finetune/NG"
 max_epochs: 8
-sample_size: 512
+sample_size: 256
 batch_size: 8
 accumulate_grad_batches: 4
 num_workers: 4
@@ -13,8 +12,12 @@ learning_rate: 0.00002
 weight_decay: 0.003
 scheduler_eta_min: 0.000005
 replacement_ratio: 0.75
+split_strategy: lopo
+fold_index: 0
+val_fold_offset: 1
+paired_sampling_method: method1_capacity_strict
 scheduler: cosine
 scheduler_T_max: 8
 scheduler_warmup_epochs: 1
 early_stopping_patience: 5
-cache_file: "cache/parse_cgft.pkl"
+cache_file: "/data/home/zhangyaojie/Lung_stack/cache/finetune/NG_metadata.pkl"

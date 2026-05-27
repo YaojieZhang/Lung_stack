@@ -26,6 +26,7 @@ def parse_dataset_configs(config_strings: Iterable[str]) -> List[DatasetConfig]:
         filter_organism = True
         gene_name_col: Optional[str] = None
 
+
         if dataset_type == "human":
             donor_col = parts[2]
             cell_type_col = parts[3]
@@ -57,6 +58,33 @@ def parse_dataset_configs(config_strings: Iterable[str]) -> List[DatasetConfig]:
                 condition_col=condition_col,
                 cell_line_col=cell_line_col,
                 control_condition=control_condition,
+                filter_organism=filter_organism,
+                gene_name_col=gene_name_col,
+            )
+        elif dataset_type == "paired":
+            if len(parts) < 7:
+                raise ValueError(
+                    "Paired dataset config requires: "
+                    "paired:path:patient_col:timepoint_col:cell_type_col:pre_condition:post_condition"
+                )
+            patient_col = parts[2]
+            timepoint_col = parts[3]
+            cell_type_col = parts[4]
+            pre_condition = parts[5]
+            post_condition = parts[6]
+            filter_organism = False
+            if len(parts) > 7 and parts[7]:
+                filter_organism = parts[7].lower() == "true"
+            if len(parts) > 8 and parts[8]:
+                gene_name_col = parts[8]
+            config = DatasetConfig(
+                path=path,
+                type="paired",
+                patient_col=patient_col,
+                timepoint_col=timepoint_col,
+                cell_type_col=cell_type_col,
+                pre_condition=pre_condition,
+                post_condition=post_condition,
                 filter_organism=filter_organism,
                 gene_name_col=gene_name_col,
             )
