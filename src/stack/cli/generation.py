@@ -257,6 +257,7 @@ def _run_incontext_generation(
     mask_rate: float,
     mode: str,
     num_steps: Optional[int],
+    prediction_output: str,
     batch_size: int,
     num_workers: int,
     random_seed: Optional[int],
@@ -273,6 +274,7 @@ def _run_incontext_generation(
         mode=mode,
         num_steps=num_steps,
         gene_name_col=gene_name_col,
+        prediction_output=prediction_output,
         batch_size=batch_size,
         show_progress=show_progress,
         num_workers=num_workers,
@@ -301,6 +303,7 @@ def generate(
     mask_rate: float = 1.0,
     num_steps: Optional[int] = None,
     mode: str = "vanilla",
+    prediction_output: str = "mean",
     batch_size: int = 32,
     num_workers: int = 4,
     random_seed: Optional[int] = None,
@@ -358,6 +361,7 @@ def generate(
             mask_rate=mask_rate,
             mode=mode,
             num_steps=num_steps,
+            prediction_output=prediction_output,
             batch_size=batch_size,
             num_workers=num_workers,
             random_seed=random_seed,
@@ -455,6 +459,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="mdm",
         help="Generation mode to use when calling the model",
     )
+    parser.add_argument(
+        "--prediction-output",
+        choices=("mean", "sample"),
+        default="mean",
+        help="Use NB mean predictions by default; choose sampled counts for count-like h5ad output",
+    )
     parser.add_argument("--batch-size", type=int, default=32, help="Batch size for inference")
     parser.add_argument("--num-workers", type=int, default=4, help="Number of DataLoader workers")
     parser.add_argument("--random-seed", type=int, default=0, help="Optional seed for reproducible sampling")
@@ -493,6 +503,7 @@ def main(args: Optional[List[str]] = None) -> None:
             mask_rate=parsed.mask_rate,
             num_steps=parsed.num_steps,
             mode=parsed.mode,
+            prediction_output=parsed.prediction_output,
             batch_size=parsed.batch_size,
             num_workers=parsed.num_workers,
             random_seed=parsed.random_seed,
@@ -523,6 +534,7 @@ def main(args: Optional[List[str]] = None) -> None:
         mask_rate=parsed.mask_rate,
         num_steps=parsed.num_steps,
         mode=parsed.mode,
+        prediction_output=parsed.prediction_output,
         batch_size=parsed.batch_size,
         num_workers=parsed.num_workers,
         random_seed=parsed.random_seed,

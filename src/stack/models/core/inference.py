@@ -561,6 +561,7 @@ class InferenceMixin:
         gene_name_col: Optional[str] = None,
         test_logit: Optional[torch.Tensor] = None,
         is_masked: Optional[torch.Tensor] = None,
+        prediction_output: str = "mean",
         batch_size: int = 32,
         show_progress: bool = True,
         num_workers: int = 4,
@@ -579,6 +580,7 @@ class InferenceMixin:
             ratio: The ratio of context cells in each mixed sample (e.g., 0.875 for 7/8).
             mode: 'latent' to return cell embeddings, 'predict' to return gene expression predictions, 'generate' to return expression prediction and uncertainty.
             gene_name_col: The column in .var to use as gene names for alignment.
+            prediction_output: 'mean' returns NB means; 'sample' returns sampled counts.
             batch_size: Batch size for processing the mixed data.
             show_progress: Whether to show a progress bar.
             num_workers: Dataloader workers.
@@ -592,6 +594,8 @@ class InferenceMixin:
         ratio = prompt_ratio + context_ratio
         assert 0 < ratio < 1, "Ratio must be between 0 and 1."
         assert mode in ['latent', 'predict', 'generate'], "Mode must be 'latent', 'predict' or 'generate'."
+        if prediction_output not in ["mean", "sample"]:
+            raise ValueError("prediction_output must be 'mean' or 'sample'")
 
         self.eval()
 
@@ -688,7 +692,10 @@ class InferenceMixin:
                 num_workers=num_workers,
                 **dataloader_kwargs
             )
-            result = count_preds[is_test_cell_mask]
+            if prediction_output == "mean":
+                result = mean_preds[is_test_cell_mask]
+            else:
+                result = count_preds[is_test_cell_mask]
             cell_indices_to_keep = None
             
             if mode == 'generate':
@@ -850,6 +857,7 @@ class InferenceMixin:
         mask_rate: float = 1.0,
         mode: str = 'vanilla',
         gene_name_col: Optional[str] = None,
+        prediction_output: str = "mean",
         batch_size: int = 32,
         show_progress: bool = True,
         num_workers: int = 4,
@@ -892,6 +900,7 @@ class InferenceMixin:
                    context_ratio = context_ratio,
                    mode = 'predict',
                    gene_name_col = gene_name_col,
+                   prediction_output = prediction_output,
                    batch_size = batch_size,
                    show_progress = show_progress,
                    num_workers = num_workers,
@@ -921,6 +930,7 @@ class InferenceMixin:
                    test_logit = test_logit,
                    is_masked = is_masked,
                    gene_name_col = gene_name_col,
+                   prediction_output = prediction_output,
                    batch_size = batch_size,
                    show_progress = show_progress,
                    num_workers = num_workers,

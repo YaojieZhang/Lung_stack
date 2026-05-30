@@ -6,7 +6,15 @@ import argparse
 import json
 import logging
 import os
+import sys
 from typing import Dict
+from pathlib import Path
+
+print(sys.executable)
+print(sys.version)
+
+if __package__ in {None, ""}:  # Support running this file directly from an IDE debugger.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 try:  # pragma: no cover - runtime import resolution
     from stack.cli_utils import apply_config_from_file, filter_unused_arguments
@@ -79,10 +87,14 @@ def _import_training_modules():
     }
 
 
-def configure_callbacks(args: argparse.Namespace):
+def configure_callbacks(args: argparse.Namespace,
+                        model_checkpoint_cls,
+                        early_stopping_cls,
+                        lr_monitor_cls,
+                        ):
     """Return the default callback suite used for fine-tuning."""
     return [
-        ModelCheckpoint(
+        model_checkpoint_cls(
             dirpath=args.save_dir,
             filename="finetuned-{epoch}-{val_loss:.4f}",
             monitor="val_loss",
@@ -91,14 +103,14 @@ def configure_callbacks(args: argparse.Namespace):
             save_last=True,
             verbose=True,
         ),
-        EarlyStopping(
+        early_stopping_cls(
             monitor="val_loss",
             patience=args.early_stopping_patience,
             min_delta=args.early_stopping_min_delta,
             mode="min",
             verbose=True,
         ),
-        LearningRateMonitor(logging_interval="epoch"),
+        lr_monitor_cls(logging_interval="epoch"),
     ]
 
 
@@ -424,7 +436,7 @@ def main() -> None:
         run_name=args.run_name,
         save_dir=args.save_dir,
     )
-    callbacks = configure_callbacks(args)
+    callbacks = configure_callbacks(args, ModelCheckpoint, EarlyStopping, LearningRateMonitor)
 
     strategy = DDPStrategy(find_unused_parameters=False) if args.strategy == "ddp" else args.strategy
     trainer = pl.Trainer(

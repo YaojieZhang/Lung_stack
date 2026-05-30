@@ -3,12 +3,12 @@ dataset_configs:
   - "paired:/data/home/zhangyaojie/data/NG/neoadjuvant_paired:Patient:Timepoint:cell_type:Pre-biopsy:Post-surgery:false:gene_symbols"
 genelist_path: "/data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl"
 save_dir: "/data/home/zhangyaojie/Lung_stack/outputs/finetune/NG"
-max_epochs: 8
+max_epochs: 12
 sample_size: 256
 batch_size: 8
 accumulate_grad_batches: 4
 num_workers: 4
-learning_rate: 0.00002
+learning_rate: 0.00001
 weight_decay: 0.003
 scheduler_eta_min: 0.000005
 replacement_ratio: 0.75
@@ -17,7 +17,7 @@ fold_index: 0
 val_fold_offset: 1
 paired_sampling_method: method1_capacity_strict
 scheduler: cosine
-scheduler_T_max: 8
+scheduler_T_max: 12
 scheduler_warmup_epochs: 1
-early_stopping_patience: 5
+early_stopping_patience: 3
 cache_file: "/data/home/zhangyaojie/Lung_stack/cache/finetune/NG_metadata.pkl"
