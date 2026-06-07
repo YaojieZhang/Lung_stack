@@ -57,7 +57,9 @@ class MultiHeadAttention(nn.Module):
             return out, attn
         return out, None
 
-
+##############################################
+# 正在施工 增加gene_attn,增加return_attn,尚未完成#
+##############################################
 class TabularAttentionLayer(nn.Module):
     """Single layer of tabular attention for gene expression modelling."""
 
@@ -111,6 +113,7 @@ class TabularAttentionLayer(nn.Module):
 
         x_cell = x.reshape(batch_size * n_cells, n_genes, token_dim)
         x_cell_with_pos = x_cell + gene_pos_emb.unsqueeze(0)
+        #### cell_attn_out, attn_gene = self.cell_attn(x_cell_with_pos)
         cell_attn_out, _ = self.cell_attn(x_cell_with_pos)
         x_cell = self.cell_norm(x_cell + cell_attn_out)
 
@@ -118,8 +121,10 @@ class TabularAttentionLayer(nn.Module):
         x_gene = x.reshape(batch_size, n_cells, n_genes * token_dim)
 
         if return_attn:
+            # gene_attn_out, attn_cell = self.gene_attn(x_gene, attn_mask=gene_attn_mask, return_attn=True)
             gene_attn_out, attn = self.gene_attn(x_gene, attn_mask=gene_attn_mask, return_attn=True)
         else:
+            # gene_attn_out, attn_cell = self.gene_attn(x_gene, attn_mask=gene_attn_mask)
             gene_attn_out, attn = self.gene_attn(x_gene, attn_mask=gene_attn_mask)
         x_gene = self.gene_norm(x_gene + gene_attn_out)
 
@@ -127,5 +132,11 @@ class TabularAttentionLayer(nn.Module):
         mlp_input = x.reshape(-1, token_dim)
         mlp_out = self.mlp(mlp_input)
         x = self.mlp_norm(mlp_input + mlp_out).reshape(batch_size, n_cells, n_genes, token_dim)
+        
 
-        return x, attn
+        return x,attn
+        #return x, {
+            # "gene_module_attn": attn_gene,
+            # "cell_attn": attn_cell,
+        # }
+

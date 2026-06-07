@@ -251,3 +251,43 @@ test_paired_sampling_methods.py (line 315)：paired config parse。
 test_paired_sampling_methods.py (line 352)：LOPO paired split 非空检查。
 test_paired_sampling_methods.py (line 379)：sample_size=512 下 P09 post cell 不足的预期报错。
 同文件还补了 strict method capacity failure、pass-through 参数转发、checkpoint gene dimension mismatch 的测试。
+
+
+
+
+in-context prediction/generation 默认输出 NB mean，而不是 sampled count；同时保留 sample 选项。
+改动位置：
+inference.py (line 552)：get_incontext_prediction(..., prediction_output="mean")
+inference.py (line 695)：默认 result = mean_preds[is_test_cell_mask]，sample 时才用 count_preds
+inference.py (line 848)：get_incontext_generation() 继续向下传递 prediction_output
+generation.py (line 291)：CLI generation API 增加 prediction_output
+generation.py (line 462)：新增命令行参数 --prediction-output {mean,sample}
+
+
+
+已按 Stage1 保守微调策略完成修改：默认只训练 query_pos_embedding、cls、output_mlp 最后一层，冻结 Stack 主干和 decoder 前半部分。
+
+修改位置
+
+src/stack/finetune/lightning.py (line 23)
+新增 head_lr、decoder_lr、finetune_strategy 参数。
+src/stack/finetune/lightning.py (line 60)
+新增 _apply_finetune_strategy()：
+stage1 下先冻结 self.model.parameters()，再打开：
+query_pos_embedding、cls.parameters()、output_mlp[3].parameters()。
+src/stack/finetune/lightning.py (line 85)
+新增 _log_trainable_parameter_count()，启动时会打印可训练参数比例。
+src/stack/finetune/lightning.py (line 263)
+修改 configure_optimizers()：Stage1 使用 3 个 param groups：
+query_pos_embedding 用 head_lr 且 weight_decay=0；
+cls 用 head_lr；
+output_mlp[3] 用 decoder_lr。
+src/stack/cli/launch_finetuning.py (line 191)
+新增 CLI 参数：--finetune_strategy {stage1,full}、--head_lr、--decoder_lr。
+src/stack/cli/launch_finetuning.py (line 423)
+checkpoint 加载和 scratch 初始化都传入上述新参数。
+configs/finetuning/ft_parsecg.yaml (line 12)
+显式设为：
+finetune_strategy: stage1、head_lr: 0.0001、decoder_lr: 0.00001。
+tests/test_finetune_stage1.py (line 1)
+新增轻量单元测试，只检查冻结策略和 optimizer 分组，

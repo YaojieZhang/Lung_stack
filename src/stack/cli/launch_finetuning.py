@@ -188,6 +188,15 @@ def build_parser(parents=None) -> argparse.ArgumentParser:
     # Training arguments
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--learning_rate", type=float, default=1e-4, help="Learning rate")
+    parser.add_argument(
+        "--finetune_strategy",
+        type=str,
+        choices=["stage1", "full"],
+        default="stage1",
+        help="Student parameter update strategy. stage1 trains only query/cls/decoder-tail parameters.",
+    )
+    parser.add_argument("--head_lr", type=float, default=1e-4, help="Learning rate for stage1 query and cls parameters")
+    parser.add_argument("--decoder_lr", type=float, default=1e-5, help="Learning rate for stage1 decoder-tail parameters")
     parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
     parser.add_argument("--max_epochs", type=int, default=20, help="Maximum number of epochs")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of dataloader workers")
@@ -280,7 +289,10 @@ def log_configuration(args: argparse.Namespace, model_config: Dict[str, any], da
     logging.info("Paired sampling method: %s", args.paired_sampling_method)
     logging.info("N kept cells (Student): %s", int((1.0 - args.replacement_ratio) * args.sample_size))
     logging.info("Batch size: %s", args.batch_size)
+    logging.info("Fine-tune strategy: %s", args.finetune_strategy)
     logging.info("Learning rate: %s", args.learning_rate)
+    logging.info("Head learning rate: %s", args.head_lr)
+    logging.info("Decoder learning rate: %s", args.decoder_lr)
     logging.info("Max epochs: %s", args.max_epochs)
     logging.info("Save dir: %s", args.save_dir)
     logging.info("Run name: %s", args.run_name)
@@ -413,9 +425,12 @@ def main() -> None:
             strict=False,
             model_config=model_config,
             learning_rate=args.learning_rate,
+            head_lr=args.head_lr,
+            decoder_lr=args.decoder_lr,
             weight_decay=args.weight_decay,
             scheduler_config=scheduler_cfg,
             n_kept_cell=n_kept_cell,
+            finetune_strategy=args.finetune_strategy,
         )
     else:
         logging.info("Creating model from scratch (no checkpoint provided)")
@@ -425,9 +440,12 @@ def main() -> None:
             model_config=model_config,
             checkpoint_path=None,
             learning_rate=args.learning_rate,
+            head_lr=args.head_lr,
+            decoder_lr=args.decoder_lr,
             weight_decay=args.weight_decay,
             scheduler_config=scheduler_cfg,
             n_kept_cell=n_kept_cell,
+            finetune_strategy=args.finetune_strategy,
         )
 
     logger = configure_logger(

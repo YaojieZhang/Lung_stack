@@ -21,9 +21,12 @@ class LightningFinetunedModel(pl.LightningModule):
         model_config: Dict[str, Any],
         checkpoint_path: Optional[str] = None,
         learning_rate: float = 1e-4,
+        head_lr: float = 1e-4,
+        decoder_lr: float = 1e-5,
         weight_decay: float = 1e-4,
         scheduler_config: Optional[Dict[str, Any]] = None,
         n_kept_cell: int = 96,
+        finetune_strategy: str = "stage1",
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -37,14 +40,62 @@ class LightningFinetunedModel(pl.LightningModule):
             param.requires_grad = False
 
         self.learning_rate = learning_rate
+        self.head_lr = head_lr
+        self.decoder_lr = decoder_lr
         self.weight_decay = weight_decay
         self.scheduler_config = scheduler_config or {}
         self.n_kept_cell = n_kept_cell
+        self.finetune_strategy = finetune_strategy
         self.teacher_ema_decay = 0.95
         self.ema_every_n_steps = 500
 
+        self._apply_finetune_strategy()
+
         self.train_metrics = []
         self.val_metrics = []
+
+    # ------------------------------------------------------------------
+    # Fine-tuning parameter control
+    # ------------------------------------------------------------------
+    def _apply_finetune_strategy(self) -> None:
+        """Apply the requested student parameter freezing strategy."""
+        if self.finetune_strategy == "full":
+            log.info("Fine-tune strategy: full student model")
+            self._log_trainable_parameter_count()
+            return
+
+        if self.finetune_strategy != "stage1":
+            raise ValueError(f"Unknown finetune_strategy: {self.finetune_strategy}")
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.query_pos_embedding.requires_grad = True
+        for param in self.model.cls.parameters():
+            param.requires_grad = True
+        for param in self.model.output_mlp[3].parameters():
+            param.requires_grad = True
+
+        log.info(
+            "Fine-tune strategy: stage1 "
+            "(train query_pos_embedding, cls, output_mlp final layer)"
+        )
+        self._log_trainable_parameter_count()
+
+    def _log_trainable_parameter_count(self) -> None:
+        total_params = sum(param.numel() for param in self.model.parameters())
+        trainable_params = sum(
+            param.numel()
+            for param in self.model.parameters()
+            if param.requires_grad
+        )
+        trainable_pct = 100.0 * trainable_params / max(total_params, 1)
+        log.info(
+            "Student trainable parameters: %s/%s (%.4f%%)",
+            trainable_params,
+            total_params,
+            trainable_pct,
+        )
 
     # ------------------------------------------------------------------
     # Lifecycle hooks
@@ -210,7 +261,36 @@ class LightningFinetunedModel(pl.LightningModule):
         return {'test_loss': total_loss}
 
     def configure_optimizers(self):  # type: ignore[override]
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        if self.finetune_strategy == "stage1":
+            optimizer = torch.optim.AdamW(
+                [
+                    {
+                        "params": [self.model.query_pos_embedding],
+                        "lr": self.head_lr,
+                        "weight_decay": 0.0,
+                    },
+                    {
+                        "params": [
+                            param
+                            for param in self.model.cls.parameters()
+                            if param.requires_grad
+                        ],
+                        "lr": self.head_lr,
+                        "weight_decay": self.weight_decay,
+                    },
+                    {
+                        "params": [
+                            param
+                            for param in self.model.output_mlp[3].parameters()
+                            if param.requires_grad
+                        ],
+                        "lr": self.decoder_lr,
+                        "weight_decay": self.weight_decay,
+                    },
+                ]
+            )
+        else:
+            optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         config: Dict[str, Any] = {'optimizer': optimizer}
 
         if not self.scheduler_config:
