@@ -1,0 +1,268 @@
+2026-06-07 23:39:33,339 - INFO - Loaded fine-tuning defaults from configs/finetuning/ft_parsecg.yaml
+2026-06-07 23:39:33,340 - INFO - Added paired dataset config: path=/data/home/zhangyaojie/data/NG/neoadjuvant_paired gene_col=gene_symbols
+2026-06-07 23:39:33,360 - INFO - Loaded 15012 genes for fine-tuning from /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl
+2026-06-07 23:39:33,361 - INFO - Preparing fine-tuning datasets from 1 configs
+2026-06-07 23:39:33,361 - INFO - Creating base dataset for group splitting...
+2026-06-07 23:39:33,361 - INFO - Initializing Enhanced MultiDatasetMetadataCache...
+2026-06-07 23:39:33,409 - INFO - Loaded acceleration pools from cache:
+2026-06-07 23:39:33,409 - INFO -   Group-identity combinations: 76
+2026-06-07 23:39:33,409 - INFO -   File-identity combinations: 11
+2026-06-07 23:39:33,409 - INFO -   Config-identity combinations: 11
+2026-06-07 23:39:33,409 - INFO -   Paired group-condition-identity combinations: 152
+2026-06-07 23:39:33,409 - INFO -   Unique identities: 11
+2026-06-07 23:39:33,410 - INFO - Loaded metadata from cache: /data/home/zhangyaojie/Lung_stack/cache/finetune/NG_metadata.pkl
+2026-06-07 23:39:33,442 - INFO - Initialization completed in 0.08s. Total cells: 124483
+2026-06-07 23:39:33,442 - INFO - Current memory usage: ~0.88GB
+2026-06-07 23:39:33,456 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:33,458 - INFO - Found 7 groups with >= 128 cells
+2026-06-07 23:39:33,458 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-07 23:39:33,458 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-07 23:39:33,458 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-07 23:39:33,458 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-07 23:39:33,458 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-07 23:39:33,458 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-07 23:39:33,463 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:33,538 - INFO - Generated 242 locality-aware samples in 0.08s for train mode
+2026-06-07 23:39:33,538 - INFO -   Processed 5 (file, group) combinations
+2026-06-07 23:39:33,538 - INFO -   Skipped 0 combinations with < 128 cells
+2026-06-07 23:39:33,539 - INFO -   Samples by type: 0 human, 0 drug, 242 paired
+2026-06-07 23:39:33,539 - INFO -   Average I/O locality: 242 contiguous blocks preserving group semantics
+2026-06-07 23:39:33,541 - INFO - Found 7 groups with >= 128 cells
+2026-06-07 23:39:33,541 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-07 23:39:33,541 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-07 23:39:33,541 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-07 23:39:33,541 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-07 23:39:33,541 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-07 23:39:33,541 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-07 23:39:33,541 - INFO - Creating training dataset...
+2026-06-07 23:39:33,555 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:33,562 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:33,638 - INFO - Generated 120 locality-aware samples in 0.08s for train mode
+2026-06-07 23:39:33,638 - INFO -   Processed 5 (file, group) combinations
+2026-06-07 23:39:33,638 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:33,638 - INFO -   Samples by type: 0 human, 0 drug, 120 paired
+2026-06-07 23:39:33,638 - INFO -   Average I/O locality: 120 contiguous blocks preserving group semantics
+2026-06-07 23:39:33,639 - INFO - Creating validation dataset...
+2026-06-07 23:39:33,652 - INFO - [val] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:33,659 - INFO - [val] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:33,695 - INFO - Generated 60 locality-aware samples in 0.04s for val mode
+2026-06-07 23:39:33,695 - INFO -   Processed 1 (file, group) combinations
+2026-06-07 23:39:33,695 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:33,695 - INFO -   Samples by type: 0 human, 0 drug, 60 paired
+2026-06-07 23:39:33,695 - INFO -   Average I/O locality: 60 contiguous blocks preserving group semantics
+2026-06-07 23:39:33,695 - INFO - Creating test dataset...
+2026-06-07 23:39:33,708 - INFO - [test] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:33,717 - INFO - [test] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:33,752 - INFO - Generated 55 locality-aware samples in 0.03s for test mode
+2026-06-07 23:39:33,752 - INFO -   Processed 1 (file, group) combinations
+2026-06-07 23:39:33,752 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:33,752 - INFO -   Samples by type: 0 human, 0 drug, 55 paired
+2026-06-07 23:39:33,752 - INFO -   Average I/O locality: 55 contiguous blocks preserving group semantics
+2026-06-07 23:39:33,752 - INFO - Fine-tuning splits prepared: train=120 val=60 test=55
+2026-06-07 23:39:33,752 - INFO - Saved dataset split information to /data/home/zhangyaojie/Lung_stack/outputs/finetune/NG/fold_0/dataset_splits.json
+2026-06-07 23:39:33,752 - INFO - Loading model from checkpoint: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/bc_large_aligned.ckpt
+/data/home/zhangyaojie/Lung_stack/src/stack/finetune/utils.py:137: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(ckpt_path, map_location="cpu")
+2026-06-07 23:39:34,714 - INFO - Override model_config.n_cells: 512 -> 256
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/lightning_fabric/utilities/cloud_io.py:73: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+2026-06-07 23:39:40,942 - INFO - Freezing teacher model parameters for distillation
+2026-06-07 23:39:40,944 - INFO - Fine-tune strategy: stage1 (train query_pos_embedding, cls, output_mlp final layer)
+2026-06-07 23:39:40,944 - INFO - Student trainable parameters: 351825/217806513 (0.1615%)
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/core/saving.py:193: Found keys that are in the model state dict but not in the checkpoint: ['teacher_model.gene_pos_embedding', 'teacher_model.query_pos_embedding', 'teacher_model.gene_reduction.0.weight', 'teacher_model.gene_reduction.0.bias', 'teacher_model.layers.0.cell_attn.qkv.weight', 'teacher_model.layers.0.cell_attn.proj.weight', 'teacher_model.layers.0.cell_attn.proj.bias', 'teacher_model.layers.0.cell_norm.weight', 'teacher_model.layers.0.cell_norm.bias', 'teacher_model.layers.0.gene_attn.qkv.weight', 'teacher_model.layers.0.gene_attn.proj.weight', 'teacher_model.layers.0.gene_attn.proj.bias', 'teacher_model.layers.0.gene_norm.weight', 'teacher_model.layers.0.gene_norm.bias', 'teacher_model.layers.0.mlp.0.weight', 'teacher_model.layers.0.mlp.0.bias', 'teacher_model.layers.0.mlp.3.weight', 'teacher_model.layers.0.mlp.3.bias', 'teacher_model.layers.0.mlp_norm.weight', 'teacher_model.layers.0.mlp_norm.bias', 'teacher_model.layers.1.cell_attn.qkv.weight', 'teacher_model.layers.1.cell_attn.proj.weight', 'teacher_model.layers.1.cell_attn.proj.bias', 'teacher_model.layers.1.cell_norm.weight', 'teacher_model.layers.1.cell_norm.bias', 'teacher_model.layers.1.gene_attn.qkv.weight', 'teacher_model.layers.1.gene_attn.proj.weight', 'teacher_model.layers.1.gene_attn.proj.bias', 'teacher_model.layers.1.gene_norm.weight', 'teacher_model.layers.1.gene_norm.bias', 'teacher_model.layers.1.mlp.0.weight', 'teacher_model.layers.1.mlp.0.bias', 'teacher_model.layers.1.mlp.3.weight', 'teacher_model.layers.1.mlp.3.bias', 'teacher_model.layers.1.mlp_norm.weight', 'teacher_model.layers.1.mlp_norm.bias', 'teacher_model.layers.2.cell_attn.qkv.weight', 'teacher_model.layers.2.cell_attn.proj.weight', 'teacher_model.layers.2.cell_attn.proj.bias', 'teacher_model.layers.2.cell_norm.weight', 'teacher_model.layers.2.cell_norm.bias', 'teacher_model.layers.2.gene_attn.qkv.weight', 'teacher_model.layers.2.gene_attn.proj.weight', 'teacher_model.layers.2.gene_attn.proj.bias', 'teacher_model.layers.2.gene_norm.weight', 'teacher_model.layers.2.gene_norm.bias', 'teacher_model.layers.2.mlp.0.weight', 'teacher_model.layers.2.mlp.0.bias', 'teacher_model.layers.2.mlp.3.weight', 'teacher_model.layers.2.mlp.3.bias', 'teacher_model.layers.2.mlp_norm.weight', 'teacher_model.layers.2.mlp_norm.bias', 'teacher_model.layers.3.cell_attn.qkv.weight', 'teacher_model.layers.3.cell_attn.proj.weight', 'teacher_model.layers.3.cell_attn.proj.bias', 'teacher_model.layers.3.cell_norm.weight', 'teacher_model.layers.3.cell_norm.bias', 'teacher_model.layers.3.gene_attn.qkv.weight', 'teacher_model.layers.3.gene_attn.proj.weight', 'teacher_model.layers.3.gene_attn.proj.bias', 'teacher_model.layers.3.gene_norm.weight', 'teacher_model.layers.3.gene_norm.bias', 'teacher_model.layers.3.mlp.0.weight', 'teacher_model.layers.3.mlp.0.bias', 'teacher_model.layers.3.mlp.3.weight', 'teacher_model.layers.3.mlp.3.bias', 'teacher_model.layers.3.mlp_norm.weight', 'teacher_model.layers.3.mlp_norm.bias', 'teacher_model.layers.4.cell_attn.qkv.weight', 'teacher_model.layers.4.cell_attn.proj.weight', 'teacher_model.layers.4.cell_attn.proj.bias', 'teacher_model.layers.4.cell_norm.weight', 'teacher_model.layers.4.cell_norm.bias', 'teacher_model.layers.4.gene_attn.qkv.weight', 'teacher_model.layers.4.gene_attn.proj.weight', 'teacher_model.layers.4.gene_attn.proj.bias', 'teacher_model.layers.4.gene_norm.weight', 'teacher_model.layers.4.gene_norm.bias', 'teacher_model.layers.4.mlp.0.weight', 'teacher_model.layers.4.mlp.0.bias', 'teacher_model.layers.4.mlp.3.weight', 'teacher_model.layers.4.mlp.3.bias', 'teacher_model.layers.4.mlp_norm.weight', 'teacher_model.layers.4.mlp_norm.bias', 'teacher_model.layers.5.cell_attn.qkv.weight', 'teacher_model.layers.5.cell_attn.proj.weight', 'teacher_model.layers.5.cell_attn.proj.bias', 'teacher_model.layers.5.cell_norm.weight', 'teacher_model.layers.5.cell_norm.bias', 'teacher_model.layers.5.gene_attn.qkv.weight', 'teacher_model.layers.5.gene_attn.proj.weight', 'teacher_model.layers.5.gene_attn.proj.bias', 'teacher_model.layers.5.gene_norm.weight', 'teacher_model.layers.5.gene_norm.bias', 'teacher_model.layers.5.mlp.0.weight', 'teacher_model.layers.5.mlp.0.bias', 'teacher_model.layers.5.mlp.3.weight', 'teacher_model.layers.5.mlp.3.bias', 'teacher_model.layers.5.mlp_norm.weight', 'teacher_model.layers.5.mlp_norm.bias', 'teacher_model.layers.6.cell_attn.qkv.weight', 'teacher_model.layers.6.cell_attn.proj.weight', 'teacher_model.layers.6.cell_attn.proj.bias', 'teacher_model.layers.6.cell_norm.weight', 'teacher_model.layers.6.cell_norm.bias', 'teacher_model.layers.6.gene_attn.qkv.weight', 'teacher_model.layers.6.gene_attn.proj.weight', 'teacher_model.layers.6.gene_attn.proj.bias', 'teacher_model.layers.6.gene_norm.weight', 'teacher_model.layers.6.gene_norm.bias', 'teacher_model.layers.6.mlp.0.weight', 'teacher_model.layers.6.mlp.0.bias', 'teacher_model.layers.6.mlp.3.weight', 'teacher_model.layers.6.mlp.3.bias', 'teacher_model.layers.6.mlp_norm.weight', 'teacher_model.layers.6.mlp_norm.bias', 'teacher_model.layers.7.cell_attn.qkv.weight', 'teacher_model.layers.7.cell_attn.proj.weight', 'teacher_model.layers.7.cell_attn.proj.bias', 'teacher_model.layers.7.cell_norm.weight', 'teacher_model.layers.7.cell_norm.bias', 'teacher_model.layers.7.gene_attn.qkv.weight', 'teacher_model.layers.7.gene_attn.proj.weight', 'teacher_model.layers.7.gene_attn.proj.bias', 'teacher_model.layers.7.gene_norm.weight', 'teacher_model.layers.7.gene_norm.bias', 'teacher_model.layers.7.mlp.0.weight', 'teacher_model.layers.7.mlp.0.bias', 'teacher_model.layers.7.mlp.3.weight', 'teacher_model.layers.7.mlp.3.bias', 'teacher_model.layers.7.mlp_norm.weight', 'teacher_model.layers.7.mlp_norm.bias', 'teacher_model.layers.8.cell_attn.qkv.weight', 'teacher_model.layers.8.cell_attn.proj.weight', 'teacher_model.layers.8.cell_attn.proj.bias', 'teacher_model.layers.8.cell_norm.weight', 'teacher_model.layers.8.cell_norm.bias', 'teacher_model.layers.8.gene_attn.qkv.weight', 'teacher_model.layers.8.gene_attn.proj.weight', 'teacher_model.layers.8.gene_attn.proj.bias', 'teacher_model.layers.8.gene_norm.weight', 'teacher_model.layers.8.gene_norm.bias', 'teacher_model.layers.8.mlp.0.weight', 'teacher_model.layers.8.mlp.0.bias', 'teacher_model.layers.8.mlp.3.weight', 'teacher_model.layers.8.mlp.3.bias', 'teacher_model.layers.8.mlp_norm.weight', 'teacher_model.layers.8.mlp_norm.bias', 'teacher_model.output_mlp.0.weight', 'teacher_model.output_mlp.0.bias', 'teacher_model.output_mlp.3.weight', 'teacher_model.output_mlp.3.bias', 'teacher_model.cls.0.weight', 'teacher_model.cls.0.bias', 'teacher_model.cls.2.weight', 'teacher_model.cls.2.bias']
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+2026-06-07 23:39:41,218 - INFO - ================================================================================
+2026-06-07 23:39:41,219 - INFO - FINE-TUNING CONFIGURATION WITH FROZEN TEACHER
+2026-06-07 23:39:41,219 - INFO - ================================================================================
+2026-06-07 23:39:41,219 - INFO - Checkpoint: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/bc_large_aligned.ckpt
+2026-06-07 23:39:41,219 - INFO - Model configuration:
+2026-06-07 23:39:41,219 - INFO -   n_genes: 15012
+2026-06-07 23:39:41,219 - INFO -   n_hidden: 100
+2026-06-07 23:39:41,219 - INFO -   token_dim: 16
+2026-06-07 23:39:41,219 - INFO -   n_cells: 256
+2026-06-07 23:39:41,219 - INFO -   n_layers: 9
+2026-06-07 23:39:41,219 - INFO -   n_heads: 8
+2026-06-07 23:39:41,219 - INFO -   dropout: 0.0
+2026-06-07 23:39:41,219 - INFO -   mask_rate_min: 0.1
+2026-06-07 23:39:41,219 - INFO -   mask_rate_max: 0.8
+2026-06-07 23:39:41,219 - INFO -   sw_weight: 0.01
+2026-06-07 23:39:41,219 - INFO -   n_proj: 64
+2026-06-07 23:39:41,219 - INFO - Training setup:
+2026-06-07 23:39:41,219 - INFO -   Using Frozen Teacher architecture for stable targets
+2026-06-07 23:39:41,219 - INFO - Dataset configurations:
+2026-06-07 23:39:41,219 - INFO -   Dataset 1: paired - /data/home/zhangyaojie/data/NG/neoadjuvant_paired
+2026-06-07 23:39:41,219 - INFO -     Patient col: Patient, Timepoint col: Timepoint, Cell type col: cell_type, Pre/Post: Pre-biopsy/Post-surgery
+2026-06-07 23:39:41,219 - INFO -     Filter organism: False
+2026-06-07 23:39:41,219 - INFO - Gene list: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl (15012 genes)
+2026-06-07 23:39:41,219 - INFO - Sample size: 256
+2026-06-07 23:39:41,219 - INFO - Split strategy: lopo (fold=0, val_offset=1)
+2026-06-07 23:39:41,219 - INFO - Paired sampling method: method1_capacity_strict
+2026-06-07 23:39:41,219 - INFO - N kept cells (Student): 64
+2026-06-07 23:39:41,219 - INFO - Batch size: 8
+2026-06-07 23:39:41,219 - INFO - Fine-tune strategy: stage1
+2026-06-07 23:39:41,219 - INFO - Learning rate: 1e-05
+2026-06-07 23:39:41,220 - INFO - Head learning rate: 0.0001
+2026-06-07 23:39:41,220 - INFO - Decoder learning rate: 1e-05
+2026-06-07 23:39:41,220 - INFO - Max epochs: 12
+2026-06-07 23:39:41,220 - INFO - Save dir: /data/home/zhangyaojie/Lung_stack/outputs/finetune/NG/fold_0
+2026-06-07 23:39:41,220 - INFO - Run name: NG_stage1_fold0_seed42_fold_0_seed_42
+2026-06-07 23:39:41,220 - INFO - Logger: TensorBoardLogger
+2026-06-07 23:39:41,220 - INFO - ================================================================================
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 1 processes
+----------------------------------------------------------------------------------------------------
+
+2026-06-07 23:39:41,426 - INFO - Preparing fine-tuning datasets from 1 configs
+2026-06-07 23:39:41,426 - INFO - Creating base dataset for group splitting...
+2026-06-07 23:39:41,440 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:41,441 - INFO - Found 7 groups with >= 128 cells
+2026-06-07 23:39:41,441 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-07 23:39:41,441 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-07 23:39:41,442 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-07 23:39:41,442 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-07 23:39:41,442 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-07 23:39:41,442 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-07 23:39:41,446 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:41,524 - INFO - Generated 242 locality-aware samples in 0.08s for train mode
+2026-06-07 23:39:41,524 - INFO -   Processed 5 (file, group) combinations
+2026-06-07 23:39:41,524 - INFO -   Skipped 0 combinations with < 128 cells
+2026-06-07 23:39:41,524 - INFO -   Samples by type: 0 human, 0 drug, 242 paired
+2026-06-07 23:39:41,524 - INFO -   Average I/O locality: 242 contiguous blocks preserving group semantics
+2026-06-07 23:39:41,525 - INFO - Found 7 groups with >= 128 cells
+2026-06-07 23:39:41,525 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-07 23:39:41,525 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-07 23:39:41,526 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-07 23:39:41,526 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-07 23:39:41,526 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-07 23:39:41,526 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-07 23:39:41,526 - INFO - Creating training dataset...
+2026-06-07 23:39:41,539 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:41,546 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:41,623 - INFO - Generated 120 locality-aware samples in 0.08s for train mode
+2026-06-07 23:39:41,623 - INFO -   Processed 5 (file, group) combinations
+2026-06-07 23:39:41,623 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:41,623 - INFO -   Samples by type: 0 human, 0 drug, 120 paired
+2026-06-07 23:39:41,623 - INFO -   Average I/O locality: 120 contiguous blocks preserving group semantics
+2026-06-07 23:39:41,623 - INFO - Creating validation dataset...
+2026-06-07 23:39:41,637 - INFO - [val] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:41,644 - INFO - [val] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:41,679 - INFO - Generated 60 locality-aware samples in 0.04s for val mode
+2026-06-07 23:39:41,679 - INFO -   Processed 1 (file, group) combinations
+2026-06-07 23:39:41,679 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:41,679 - INFO -   Samples by type: 0 human, 0 drug, 60 paired
+2026-06-07 23:39:41,679 - INFO -   Average I/O locality: 60 contiguous blocks preserving group semantics
+2026-06-07 23:39:41,680 - INFO - Creating test dataset...
+2026-06-07 23:39:41,693 - INFO - [test] Created mapping for 11 unique cell identities.
+2026-06-07 23:39:41,700 - INFO - [test] Generating locality-aware samples with group preservation...
+2026-06-07 23:39:41,734 - INFO - Generated 55 locality-aware samples in 0.03s for test mode
+2026-06-07 23:39:41,734 - INFO -   Processed 1 (file, group) combinations
+2026-06-07 23:39:41,734 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-07 23:39:41,734 - INFO -   Samples by type: 0 human, 0 drug, 55 paired
+2026-06-07 23:39:41,734 - INFO -   Average I/O locality: 55 contiguous blocks preserving group semantics
+2026-06-07 23:39:41,735 - INFO - Fine-tuning splits prepared: train=120 val=60 test=55
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:881: Checkpoint directory /data/home/zhangyaojie/Lung_stack/outputs/finetune/NG/fold_0 exists and is not empty.
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [7]
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/model_summary/model_summary.py:242: Precision bf16-mixed is not supported by the model summary.  Estimated model size in MB will not be accurate. Using 32 bits instead.
+/data/home/zhangyaojie/miniconda3/envs/Stella/bin/python
+3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+┏━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name          ┃ Type               ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ model         │ ICL_FinetunedModel │  217 M │ train │     0 │
+│ 1 │ teacher_model │ ICL_FinetunedModel │  217 M │ eval  │     0 │
+└───┴───────────────┴────────────────────┴────────┴───────┴───────┘
+Trainable params: 351 K                                                                                           
+Non-trainable params: 435 M                                                                                       
+Total params: 435 M                                                                                               
+Total estimated model params size (MB): 1,742.452                                                                 
+Modules in train mode: 179                                                                                        
+Modules in eval mode: 179                                                                                         
+Total FLOPs: 0                                                                                                    
+2026-06-07 23:39:41,805 - INFO - `on_fit_start` hook called. Syncing teacher model weights from student...
+2026-06-07 23:39:41,809 - INFO - VERIFYING teacher weights against student weights...
+2026-06-07 23:39:41,925 - INFO - SUCCESS: Teacher weights match student weights.
+2026-06-07 23:39:41,928 - INFO - Sample tensor sum: 2.597881317138672
+2026-06-07 23:39:41,928 - INFO - Teacher model weights synced successfully.
+2026-06-07 23:39:42,705 - INFO - Model architecture verification passed for both student and teacher.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 8. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py:321: The number of training batches (15) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py:538: Found 179 module(s) in eval mode at the start of training. This may lead to unexpected behavior during training. If this is intentional, you can ignore this warning.
+Epoch 0/11 ━━━━━━━━━━━                        5/15 0:00:08 • 0:00:07 1.61it/s v_num: d_42 train/loss_step: 5.863  
+                                                                              train/recon_loss_step: 0.256        
+                                                                              train/mmd_loss_step: 5.380          
+                                                                              train/sw_loss_step: 0.076           
+                                                                              train/cls_loss_step: 0.226          
+                                                                              train/cls_acc_step: 0.311           
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+[rank0]:     return _run_code(code, main_globals, None,
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/runpy.py", line 86, in _run_code
+[rank0]:     exec(code, run_globals)
+[rank0]:   File "/data/home/zhangyaojie/Lung_stack/src/stack/cli/launch_finetuning.py", line 488, in <module>
+[rank0]:     main()
+[rank0]:   File "/data/home/zhangyaojie/Lung_stack/src/stack/cli/launch_finetuning.py", line 477, in main
+[rank0]:     trainer.fit(student_model, datamodule=data_module)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 584, in fit
+[rank0]:     call._call_and_handle_interrupt(
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/trainer/call.py", line 48, in _call_and_handle_interrupt
+[rank0]:     return trainer.strategy.launcher.launch(trainer_fn, *args, trainer=trainer, **kwargs)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/strategies/launchers/subprocess_script.py", line 105, in launch
+[rank0]:     return function(*args, **kwargs)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 630, in _fit_impl
+[rank0]:     self._run(model, ckpt_path=ckpt_path, weights_only=weights_only)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 1079, in _run
+[rank0]:     results = self._run_stage()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/trainer/trainer.py", line 1123, in _run_stage
+[rank0]:     self.fit_loop.run()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py", line 217, in run
+[rank0]:     self.advance()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py", line 469, in advance
+[rank0]:     self.epoch_loop.run(self._data_fetcher)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 153, in run
+[rank0]:     self.advance(data_fetcher)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/training_epoch_loop.py", line 311, in advance
+[rank0]:     batch, _, __ = next(data_fetcher)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fetchers.py", line 134, in __next__
+[rank0]:     batch = super().__next__()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fetchers.py", line 61, in __next__
+[rank0]:     batch = next(self.iterator)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/combined_loader.py", line 341, in __next__
+[rank0]:     out = next(self._iterator)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/combined_loader.py", line 78, in __next__
+[rank0]:     out[i] = next(self.iterators[i])
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 630, in __next__
+[rank0]:     data = self._next_data()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1324, in _next_data
+[rank0]:     return self._process_data(data)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1370, in _process_data
+[rank0]:     data.reraise()
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/_utils.py", line 706, in reraise
+[rank0]:     raise exception
+[rank0]: KeyError: Caught KeyError in DataLoader worker process 1.
+[rank0]: Original Traceback (most recent call last):
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/worker.py", line 309, in _worker_loop
+[rank0]:     data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/fetch.py", line 55, in fetch
+[rank0]:     return self.collate_fn(data)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 317, in default_collate
+[rank0]:     return collate(batch, collate_fn_map=default_collate_fn_map)
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 174, in collate
+[rank0]:     return [collate(samples, collate_fn_map=collate_fn_map) for samples in transposed]  # Backwards compatibility.
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 174, in <listcomp>
+[rank0]:     return [collate(samples, collate_fn_map=collate_fn_map) for samples in transposed]  # Backwards compatibility.
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 155, in collate
+[rank0]:     clone.update({key: collate([d[key] for d in batch], collate_fn_map=collate_fn_map) for key in elem})
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 155, in <dictcomp>
+[rank0]:     clone.update({key: collate([d[key] for d in batch], collate_fn_map=collate_fn_map) for key in elem})
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 155, in collate
+[rank0]:     clone.update({key: collate([d[key] for d in batch], collate_fn_map=collate_fn_map) for key in elem})
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 155, in <dictcomp>
+[rank0]:     clone.update({key: collate([d[key] for d in batch], collate_fn_map=collate_fn_map) for key in elem})
+[rank0]:   File "/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/torch/utils/data/_utils/collate.py", line 155, in <listcomp>
+[rank0]:     clone.update({key: collate([d[key] for d in batch], collate_fn_map=collate_fn_map) for key in elem})
+[rank0]: KeyError: 'Neutrophil'
+

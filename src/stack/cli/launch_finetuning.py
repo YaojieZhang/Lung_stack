@@ -335,8 +335,8 @@ def prepare_lopo_output_paths(args: argparse.Namespace) -> None:
 
 def main() -> None:
     config_parser = argparse.ArgumentParser(add_help=False)
-    # config_parser.add_argument("--config", type=str, default=None, help="Path to a YAML/JSON config file")
-    config_parser.add_argument("--config", type=str, default="/data/home/zhangyaojie/Lung_stack/configs/finetuning/ft_parsecg.yaml")
+    config_parser.add_argument("--config", type=str, default=None, help="Path to a YAML/JSON config file")
+    # config_parser.add_argument("--config", type=str, default="/data/home/zhangyaojie/Lung_stack/configs/finetuning/ft_parsecg.yaml")
 
     parser = build_parser(parents=[config_parser])
 

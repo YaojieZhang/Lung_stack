@@ -73,8 +73,9 @@ class LightningFinetunedModel(pl.LightningModule):
         self.model.query_pos_embedding.requires_grad = True
         for param in self.model.cls.parameters():
             param.requires_grad = True
-        for param in self.model.output_mlp[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.output_mlp[3].parameters():
+        #     param.requires_grad = True
+        self.model.output_mlp[3].bias.requires_grad = True
 
         log.info(
             "Fine-tune strategy: stage1 "
@@ -279,15 +280,16 @@ class LightningFinetunedModel(pl.LightningModule):
                         "weight_decay": self.weight_decay,
                     },
                     {
-                        "params": [
-                            param
-                            for param in self.model.output_mlp[3].parameters()
-                            if param.requires_grad
-                        ],
+                        "params": [self.model.output_mlp[3].bias],
+                            # param
+                            # for param in self.model.output_mlp[3].parameters()
+                            # if param.requires_grad
+                             # ],
                         "lr": self.decoder_lr,
-                        "weight_decay": self.weight_decay,
+                        # "weight_decay": self.weight_decay,
+                        "weight_decay": 0.0,
                     },
-                ]
+                ],
             )
         else:
             optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
