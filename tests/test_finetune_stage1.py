@@ -60,13 +60,22 @@ class FakeModule:
         return iter(self._params)
 
 
+class FakeLinear:
+    def __init__(self, prefix):
+        self.weight = FakeParam(f"{prefix}.weight")
+        self.bias = FakeParam(f"{prefix}.bias")
+
+    def parameters(self):
+        return iter([self.weight, self.bias])
+
+
 class FakeOutputMlp:
     def __init__(self):
         self._layers = [
-            FakeModule("output_mlp.0"),
+            FakeLinear("output_mlp.0"),
             object(),
             object(),
-            FakeModule("output_mlp.3"),
+            FakeLinear("output_mlp.3"),
         ]
 
     def __getitem__(self, index):
@@ -97,10 +106,10 @@ class FakeModel:
                 yield f"layers.{layer_idx}.{param_idx}", param
         for idx, param in enumerate(self.cls.parameters()):
             yield f"cls.{idx}", param
-        for idx, param in enumerate(self.output_mlp[0].parameters()):
-            yield f"output_mlp.0.{idx}", param
-        for idx, param in enumerate(self.output_mlp[3].parameters()):
-            yield f"output_mlp.3.{idx}", param
+        yield "output_mlp.0.weight", self.output_mlp[0].weight
+        yield "output_mlp.0.bias", self.output_mlp[0].bias
+        yield "output_mlp.3.weight", self.output_mlp[3].weight
+        yield "output_mlp.3.bias", self.output_mlp[3].bias
 
     def parameters(self):
         for _, param in self.named_parameters():
@@ -127,6 +136,7 @@ def lightning_cls(monkeypatch):
 def make_lightning_model(lightning_cls):
     lightning_model = object.__new__(lightning_cls)
     lightning_model.model = FakeModel()
+    lightning_model.teacher_model = FakeModel()
     lightning_model.finetune_strategy = "stage1"
     lightning_model.learning_rate = 1e-5
     lightning_model.head_lr = 1e-4
@@ -136,7 +146,7 @@ def make_lightning_model(lightning_cls):
     return lightning_model
 
 
-def test_stage1_freezes_backbone_and_trains_query_cls_decoder_tail(lightning_cls):
+def test_stage1_freezes_backbone_and_trains_query_cls_decoder_bias(lightning_cls):
     lightning_model = make_lightning_model(lightning_cls)
 
     lightning_model._apply_finetune_strategy()
@@ -150,8 +160,7 @@ def test_stage1_freezes_backbone_and_trains_query_cls_decoder_tail(lightning_cls
         "query_pos_embedding",
         "cls.0",
         "cls.1",
-        "output_mlp.3.0",
-        "output_mlp.3.1",
+        "output_mlp.3.bias",
     }
 
 
@@ -165,4 +174,20 @@ def test_stage1_optimizer_uses_head_and_decoder_learning_rates(lightning_cls):
     assert [group["lr"] for group in groups] == [1e-4, 1e-4, 1e-5]
     assert groups[0]["weight_decay"] == 0.0
     assert groups[1]["weight_decay"] == 0.003
-    assert groups[2]["weight_decay"] == 0.003
+    assert groups[2]["weight_decay"] == 0.0
+    assert groups[2]["params"] == [lightning_model.model.output_mlp[3].bias]
+
+
+def test_student_only_checkpoint_restores_teacher_from_student(lightning_cls):
+    lightning_model = make_lightning_model(lightning_cls)
+    model_value = object()
+    state_dict = {
+        "model.query_pos_embedding": model_value,
+        "model.output_mlp.3.bias": object(),
+    }
+    checkpoint = {"state_dict": state_dict}
+
+    lightning_model.on_load_checkpoint(checkpoint)
+
+    assert checkpoint["state_dict"]["teacher_model.query_pos_embedding"] is model_value
+    assert "teacher_model.output_mlp.3.bias" in checkpoint["state_dict"]

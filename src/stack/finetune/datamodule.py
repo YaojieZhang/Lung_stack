@@ -5,11 +5,24 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import DataLoader
 
 from ..data.finetuning import datasets as finetuning_datasets
 
 log = logging.getLogger(__name__)
+
+
+def finetune_collate_fn(batch: List[Any]) -> Any:
+    """Collate tensors while preserving per-sample metadata dictionaries."""
+    ground_truth, observed, cell_type_ids, position_mask, metadata = zip(*batch)
+    return (
+        torch.stack(list(ground_truth)),
+        torch.stack(list(observed)),
+        torch.stack(list(cell_type_ids)),
+        torch.stack(list(position_mask)),
+        list(metadata),
+    )
 
 
 class FinetuneDataModule(pl.LightningDataModule):
@@ -115,6 +128,7 @@ class FinetuneDataModule(pl.LightningDataModule):
             prefetch_factor=2 if self.num_workers > 0 else None,
             drop_last=True,
             worker_init_fn=finetuning_datasets.worker_init_fn,
+            collate_fn=finetune_collate_fn,
         )
 
     def val_dataloader(self) -> Optional[DataLoader]:  # type: ignore[override]
@@ -130,6 +144,7 @@ class FinetuneDataModule(pl.LightningDataModule):
             prefetch_factor=2 if self.num_workers > 0 else None,
             drop_last=False,
             worker_init_fn=finetuning_datasets.worker_init_fn,
+            collate_fn=finetune_collate_fn,
         )
 
     def test_dataloader(self) -> Optional[DataLoader]:  # type: ignore[override]
@@ -145,6 +160,7 @@ class FinetuneDataModule(pl.LightningDataModule):
             prefetch_factor=2 if self.num_workers > 0 else None,
             drop_last=False,
             worker_init_fn=finetuning_datasets.worker_init_fn,
+            collate_fn=finetune_collate_fn,
         )
 
     # ------------------------------------------------------------------

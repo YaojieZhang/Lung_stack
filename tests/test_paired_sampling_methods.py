@@ -46,6 +46,7 @@ torch_utils_stub.data = torch_data_stub
 torch_stub.utils = torch_utils_stub
 torch_stub.from_numpy = lambda array: array
 torch_stub.LongTensor = lambda values: np.asarray(values, dtype=np.int64)
+torch_stub.stack = lambda values: np.stack(values)
 torch_stub.Tensor = np.ndarray
 pl_loggers_stub.TensorBoardLogger = _Logger
 pl_loggers_stub.WandbLogger = _Logger
@@ -66,7 +67,7 @@ sys.modules.setdefault("stack.finetune.lightning", types.ModuleType("stack.finet
 from stack.cli.launch_finetuning import prepare_lopo_output_paths, validate_model_gene_dimension
 from stack.data.finetuning import datasets as datasets_module
 from stack.data.finetuning.datasets import DatasetConfig, MultiDatasetSplittableDataset
-from stack.finetune.datamodule import FinetuneDataModule
+from stack.finetune.datamodule import FinetuneDataModule, finetune_collate_fn
 from stack.finetune.utils import parse_dataset_configs
 
 
@@ -440,3 +441,28 @@ def test_split_info_includes_patient_labels():
     assert split_info["val_patients"] == ["P06"]
     assert split_info["test_patients"] == ["P09"]
     assert split_info["test_groups"] == [3]
+
+
+def test_finetune_collate_keeps_variable_metadata_as_list():
+    first = (
+        np.zeros((2, 3), dtype=np.float32),
+        np.ones((2, 3), dtype=np.float32),
+        np.array([0, 1], dtype=np.int64),
+        np.array([True, True]),
+        {"paired_query_type_counts": {"Neutrophil": 1}},
+    )
+    second = (
+        np.full((2, 3), 2.0, dtype=np.float32),
+        np.full((2, 3), 3.0, dtype=np.float32),
+        np.array([1, 2], dtype=np.int64),
+        np.array([True, True]),
+        {"paired_query_type_counts": {"T": 1}},
+    )
+
+    batch = finetune_collate_fn([first, second])
+
+    assert batch[0].shape == (2, 2, 3)
+    assert batch[1].shape == (2, 2, 3)
+    assert batch[2].shape == (2, 2)
+    assert batch[3].shape == (2, 2)
+    assert batch[4] == [first[4], second[4]]

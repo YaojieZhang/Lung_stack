@@ -291,3 +291,11 @@ configs/finetuning/ft_parsecg.yaml (line 12)
 finetune_strategy: stage1、head_lr: 0.0001、decoder_lr: 0.00001。
 tests/test_finetune_stage1.py (line 1)
 新增轻量单元测试，只检查冻结策略和 optimizer 分组，
+
+
+之前 PyTorch 默认 collate 会尝试把 batch 内所有 metadata dict 深度合并，要求每个样本都有相同 keys，于是某个样本没有 Neutrophil 就崩。
+在 datamodule.py (line 16) 加了 finetune_collate_fn：tensor 正常 torch.stack，metadata 保留为 list。train/val/test dataloader 都改成使用这个 collate。
+
+
+根因在 lightning.py (line 151)：保存 checkpoint 时只保留 model.*，但 trainer.test(... ckpt_path="best") 会严格加载完整 LightningModule，需要 teacher_model.*。
+在 lightning.py (line 156) 加了 on_load_checkpoint()：如果 checkpoint 只有 model.*，加载时自动复制一份到 teacher_model.*。这样仍然保持 checkpoint 小，但 test 可以正常加载。

@@ -79,7 +79,7 @@ class LightningFinetunedModel(pl.LightningModule):
 
         log.info(
             "Fine-tune strategy: stage1 "
-            "(train query_pos_embedding, cls, output_mlp final layer)"
+            "(train query_pos_embedding, cls, output_mlp final bias)"
         )
         self._log_trainable_parameter_count()
 
@@ -154,6 +154,19 @@ class LightningFinetunedModel(pl.LightningModule):
         state_dict = checkpoint["state_dict"]
         checkpoint["state_dict"] = {k: v for k, v in state_dict.items() if k.startswith("model.")}
         log.info("Checkpoint pruned to student parameters only (kept 'model.' prefix).")
+
+    def on_load_checkpoint(self, checkpoint: Dict[str, Any]) -> None:  # type: ignore[override]
+        state_dict = checkpoint.get("state_dict", {})
+        if any(key.startswith("teacher_model.") for key in state_dict):
+            return
+
+        teacher_state = {
+            "teacher_model." + key[len("model.") :]: value
+            for key, value in list(state_dict.items())
+            if key.startswith("model.")
+        }
+        state_dict.update(teacher_state)
+        log.info("Restored teacher_model parameters from student checkpoint weights.")
 
     # ------------------------------------------------------------------
     # Core training logic
@@ -277,6 +290,7 @@ class LightningFinetunedModel(pl.LightningModule):
                             if param.requires_grad
                         ],
                         "lr": self.head_lr,
+                        # "weight_decay": self.weight_decay,
                         "weight_decay": self.weight_decay,
                     },
                     {
@@ -286,7 +300,6 @@ class LightningFinetunedModel(pl.LightningModule):
                             # if param.requires_grad
                              # ],
                         "lr": self.decoder_lr,
-                        # "weight_decay": self.weight_decay,
                         "weight_decay": 0.0,
                     },
                 ],
