@@ -1,0 +1,24 @@
+checkpoint_path: null
+decoder_lr: 0.0001
+finetune_strategy: stage1
+head_lr: 0.0001
+learning_rate: 1.0e-05
+model_config:
+  dropout: 0.0
+  mask_rate_max: 0.8
+  mask_rate_min: 0.1
+  n_cells: 256
+  n_genes: 15012
+  n_heads: 8
+  n_hidden: 100
+  n_layers: 9
+  n_proj: 64
+  sw_weight: 0.01
+  token_dim: 16
+n_kept_cell: 64
+scheduler_config:
+  T_max: 12
+  eta_min: 5.0e-06
+  type: cosine
+  warmup_epochs: 1
+weight_decay: 0.003

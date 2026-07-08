@@ -1,0 +1,241 @@
+2026-06-11 14:56:19,710 - INFO - Loaded fine-tuning defaults from configs/finetuning/ft_parsecg.yaml
+2026-06-11 14:56:19,711 - INFO - Added paired dataset config: path=/data/home/zhangyaojie/data/NG/neoadjuvant_paired gene_col=gene_symbols
+2026-06-11 14:56:19,732 - INFO - Loaded 15012 genes for fine-tuning from /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl
+2026-06-11 14:56:19,732 - INFO - Preparing fine-tuning datasets from 1 configs
+2026-06-11 14:56:19,732 - INFO - Creating base dataset for group splitting...
+2026-06-11 14:56:19,733 - INFO - Initializing Enhanced MultiDatasetMetadataCache...
+2026-06-11 14:56:19,781 - INFO - Loaded acceleration pools from cache:
+2026-06-11 14:56:19,781 - INFO -   Group-identity combinations: 76
+2026-06-11 14:56:19,781 - INFO -   File-identity combinations: 11
+2026-06-11 14:56:19,781 - INFO -   Config-identity combinations: 11
+2026-06-11 14:56:19,781 - INFO -   Paired group-condition-identity combinations: 152
+2026-06-11 14:56:19,781 - INFO -   Unique identities: 11
+2026-06-11 14:56:19,781 - INFO - Loaded metadata from cache: /data/home/zhangyaojie/Lung_stack/cache/finetune/NG_metadata.pkl
+2026-06-11 14:56:19,813 - INFO - Initialization completed in 0.08s. Total cells: 124483
+2026-06-11 14:56:19,814 - INFO - Current memory usage: ~0.87GB
+2026-06-11 14:56:19,829 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-11 14:56:19,831 - INFO - Found 7 groups with >= 128 cells
+2026-06-11 14:56:19,831 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-11 14:56:19,831 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-11 14:56:19,831 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-11 14:56:19,831 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-11 14:56:19,831 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-11 14:56:19,831 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-11 14:56:19,836 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-11 14:56:19,912 - INFO - Generated 242 locality-aware samples in 0.08s for train mode
+2026-06-11 14:56:19,912 - INFO -   Processed 5 (file, group) combinations
+2026-06-11 14:56:19,912 - INFO -   Skipped 0 combinations with < 128 cells
+2026-06-11 14:56:19,912 - INFO -   Samples by type: 0 human, 0 drug, 242 paired
+2026-06-11 14:56:19,912 - INFO -   Average I/O locality: 242 contiguous blocks preserving group semantics
+2026-06-11 14:56:19,914 - INFO - Found 7 groups with >= 128 cells
+2026-06-11 14:56:19,914 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-11 14:56:19,914 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-11 14:56:19,914 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-11 14:56:19,914 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-11 14:56:19,914 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-11 14:56:19,914 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-11 14:56:19,914 - INFO - Creating training dataset...
+2026-06-11 14:56:19,935 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-11 14:56:19,949 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-11 14:56:20,676 - INFO - Generated 120 locality-aware samples in 0.73s for train mode
+2026-06-11 14:56:20,678 - INFO -   Processed 5 (file, group) combinations
+2026-06-11 14:56:20,679 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:56:20,679 - INFO -   Samples by type: 0 human, 0 drug, 120 paired
+2026-06-11 14:56:20,680 - INFO -   Average I/O locality: 120 contiguous blocks preserving group semantics
+2026-06-11 14:56:20,686 - INFO - Creating validation dataset...
+2026-06-11 14:56:20,815 - INFO - [val] Created mapping for 11 unique cell identities.
+2026-06-11 14:56:20,885 - INFO - [val] Generating locality-aware samples with group preservation...
+2026-06-11 14:56:21,248 - INFO - Generated 60 locality-aware samples in 0.36s for val mode
+2026-06-11 14:56:21,262 - INFO -   Processed 1 (file, group) combinations
+2026-06-11 14:56:21,263 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:56:21,263 - INFO -   Samples by type: 0 human, 0 drug, 60 paired
+2026-06-11 14:56:21,263 - INFO -   Average I/O locality: 60 contiguous blocks preserving group semantics
+2026-06-11 14:56:21,264 - INFO - Creating test dataset...
+2026-06-11 14:56:21,406 - INFO - [test] Created mapping for 11 unique cell identities.
+2026-06-11 14:56:21,502 - INFO - [test] Generating locality-aware samples with group preservation...
+2026-06-11 14:56:21,898 - INFO - Generated 55 locality-aware samples in 0.39s for test mode
+2026-06-11 14:56:21,919 - INFO -   Processed 1 (file, group) combinations
+2026-06-11 14:56:21,921 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:56:21,921 - INFO -   Samples by type: 0 human, 0 drug, 55 paired
+2026-06-11 14:56:21,922 - INFO -   Average I/O locality: 55 contiguous blocks preserving group semantics
+2026-06-11 14:56:21,923 - INFO - Fine-tuning splits prepared: train=120 val=60 test=55
+2026-06-11 14:56:21,930 - INFO - Saved dataset split information to outputs/finetune/NG_output_full/fold_0/dataset_splits.json
+2026-06-11 14:56:21,930 - INFO - Loading model from checkpoint: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/bc_large_aligned.ckpt
+/data/home/zhangyaojie/Lung_stack/src/stack/finetune/utils.py:137: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  ckpt = torch.load(ckpt_path, map_location="cpu")
+2026-06-11 14:56:23,425 - INFO - Override model_config.n_cells: 512 -> 256
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/lightning_fabric/utilities/cloud_io.py:73: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+2026-06-11 14:56:59,415 - INFO - Freezing teacher model parameters for distillation
+2026-06-11 14:56:59,418 - INFO - Fine-tune strategy: stage1 (train query_pos_embedding, cls, output_mlp final bias)
+2026-06-11 14:56:59,420 - INFO - Student trainable parameters: 101551825/217806513 (46.6248%)
+2026-06-11 14:56:59,421 - INFO - Restored teacher_model parameters from student checkpoint weights.
+Using bfloat16 Automatic Mixed Precision (AMP)
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+💡 Tip: For seamless cloud logging and experiment tracking, try installing [litlogger](https://pypi.org/project/litlogger/) to enable LitLogger, which logs metrics and artifacts automatically to the Lightning Experiments platform.
+2026-06-11 14:56:59,973 - INFO - ================================================================================
+2026-06-11 14:56:59,973 - INFO - FINE-TUNING CONFIGURATION WITH FROZEN TEACHER
+2026-06-11 14:56:59,973 - INFO - ================================================================================
+2026-06-11 14:56:59,973 - INFO - Checkpoint: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/bc_large_aligned.ckpt
+2026-06-11 14:56:59,973 - INFO - Model configuration:
+2026-06-11 14:56:59,973 - INFO -   n_genes: 15012
+2026-06-11 14:56:59,973 - INFO -   n_hidden: 100
+2026-06-11 14:56:59,973 - INFO -   token_dim: 16
+2026-06-11 14:56:59,973 - INFO -   n_cells: 256
+2026-06-11 14:56:59,973 - INFO -   n_layers: 9
+2026-06-11 14:56:59,974 - INFO -   n_heads: 8
+2026-06-11 14:56:59,974 - INFO -   dropout: 0.0
+2026-06-11 14:56:59,974 - INFO -   mask_rate_min: 0.1
+2026-06-11 14:56:59,974 - INFO -   mask_rate_max: 0.8
+2026-06-11 14:56:59,974 - INFO -   sw_weight: 0.01
+2026-06-11 14:56:59,974 - INFO -   n_proj: 64
+2026-06-11 14:56:59,974 - INFO - Training setup:
+2026-06-11 14:56:59,974 - INFO -   Using Frozen Teacher architecture for stable targets
+2026-06-11 14:56:59,974 - INFO - Dataset configurations:
+2026-06-11 14:56:59,974 - INFO -   Dataset 1: paired - /data/home/zhangyaojie/data/NG/neoadjuvant_paired
+2026-06-11 14:56:59,974 - INFO -     Patient col: Patient, Timepoint col: Timepoint, Cell type col: cell_type, Pre/Post: Pre-biopsy/Post-surgery
+2026-06-11 14:56:59,974 - INFO -     Filter organism: False
+2026-06-11 14:56:59,975 - INFO - Gene list: /data/home/zhangyaojie/Stack/notebooks/tutorial-pred-model/basecount_1000per_15000max.pkl (15012 genes)
+2026-06-11 14:56:59,975 - INFO - Sample size: 256
+2026-06-11 14:56:59,975 - INFO - Split strategy: lopo (fold=0, val_offset=1)
+2026-06-11 14:56:59,975 - INFO - Paired sampling method: method1_capacity_strict
+2026-06-11 14:56:59,975 - INFO - N kept cells (Student): 64
+2026-06-11 14:56:59,975 - INFO - Batch size: 8
+2026-06-11 14:56:59,975 - INFO - Fine-tune strategy: stage1
+2026-06-11 14:56:59,975 - INFO - Learning rate: 1e-05
+2026-06-11 14:56:59,975 - INFO - Head learning rate: 0.0001
+2026-06-11 14:56:59,976 - INFO - Decoder learning rate: 5e-05
+2026-06-11 14:56:59,976 - INFO - Max epochs: 12
+2026-06-11 14:56:59,976 - INFO - Save dir: outputs/finetune/NG_output_full/fold_0
+2026-06-11 14:56:59,976 - INFO - Run name: NG_output_full_fold0_seed42_fold_0_seed_42
+2026-06-11 14:56:59,976 - INFO - Logger: TensorBoardLogger
+2026-06-11 14:56:59,976 - INFO - ================================================================================
+Initializing distributed: GLOBAL_RANK: 0, MEMBER: 1/1
+----------------------------------------------------------------------------------------------------
+distributed_backend=nccl
+All distributed processes registered. Starting with 1 processes
+----------------------------------------------------------------------------------------------------
+
+2026-06-11 14:57:00,780 - INFO - Preparing fine-tuning datasets from 1 configs
+2026-06-11 14:57:00,781 - INFO - Creating base dataset for group splitting...
+2026-06-11 14:57:00,859 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-11 14:57:00,871 - INFO - Found 7 groups with >= 128 cells
+2026-06-11 14:57:00,878 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-11 14:57:00,878 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-11 14:57:00,878 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-11 14:57:00,878 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-11 14:57:00,879 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-11 14:57:00,879 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-11 14:57:00,897 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-11 14:57:01,397 - INFO - Generated 242 locality-aware samples in 0.49s for train mode
+2026-06-11 14:57:01,407 - INFO -   Processed 5 (file, group) combinations
+2026-06-11 14:57:01,408 - INFO -   Skipped 0 combinations with < 128 cells
+2026-06-11 14:57:01,408 - INFO -   Samples by type: 0 human, 0 drug, 242 paired
+2026-06-11 14:57:01,408 - INFO -   Average I/O locality: 242 contiguous blocks preserving group semantics
+2026-06-11 14:57:01,411 - INFO - Found 7 groups with >= 128 cells
+2026-06-11 14:57:01,418 - INFO - Groups by type: 0 human, 0 drug, 7 paired
+2026-06-11 14:57:01,418 - INFO - LOPO paired split fold 1/7: train=['P06', 'P07', 'P08', 'P09', 'P10'] val=P05 test=P01
+2026-06-11 14:57:01,419 - INFO - Split groups: 5 train, 1 val, 1 test
+2026-06-11 14:57:01,419 - INFO -   Human - train: 0, val: 0, test: 0
+2026-06-11 14:57:01,419 - INFO -   Drug - train: 0, val: 0, test: 0
+2026-06-11 14:57:01,419 - INFO -   Paired - train: 5, val: 1, test: 1
+2026-06-11 14:57:01,419 - INFO - Creating training dataset...
+2026-06-11 14:57:01,537 - INFO - [train] Created mapping for 11 unique cell identities.
+2026-06-11 14:57:01,601 - INFO - [train] Generating locality-aware samples with group preservation...
+2026-06-11 14:57:02,002 - INFO - Generated 120 locality-aware samples in 0.39s for train mode
+2026-06-11 14:57:02,020 - INFO -   Processed 5 (file, group) combinations
+2026-06-11 14:57:02,021 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:57:02,022 - INFO -   Samples by type: 0 human, 0 drug, 120 paired
+2026-06-11 14:57:02,023 - INFO -   Average I/O locality: 120 contiguous blocks preserving group semantics
+2026-06-11 14:57:02,024 - INFO - Creating validation dataset...
+2026-06-11 14:57:02,129 - INFO - [val] Created mapping for 11 unique cell identities.
+2026-06-11 14:57:02,165 - INFO - [val] Generating locality-aware samples with group preservation...
+2026-06-11 14:57:02,236 - INFO - Generated 60 locality-aware samples in 0.07s for val mode
+2026-06-11 14:57:02,237 - INFO -   Processed 1 (file, group) combinations
+2026-06-11 14:57:02,237 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:57:02,237 - INFO -   Samples by type: 0 human, 0 drug, 60 paired
+2026-06-11 14:57:02,237 - INFO -   Average I/O locality: 60 contiguous blocks preserving group semantics
+2026-06-11 14:57:02,238 - INFO - Creating test dataset...
+2026-06-11 14:57:02,264 - INFO - [test] Created mapping for 11 unique cell identities.
+2026-06-11 14:57:02,278 - INFO - [test] Generating locality-aware samples with group preservation...
+2026-06-11 14:57:02,346 - INFO - Generated 55 locality-aware samples in 0.07s for test mode
+2026-06-11 14:57:02,347 - INFO -   Processed 1 (file, group) combinations
+2026-06-11 14:57:02,347 - INFO -   Skipped 0 combinations with < 256 cells
+2026-06-11 14:57:02,347 - INFO -   Samples by type: 0 human, 0 drug, 55 paired
+2026-06-11 14:57:02,347 - INFO -   Average I/O locality: 55 contiguous blocks preserving group semantics
+2026-06-11 14:57:02,348 - INFO - Fine-tuning splits prepared: train=120 val=60 test=55
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [3]
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/model_summary/model_summary.py:242: Precision bf16-mixed is not supported by the model summary.  Estimated model size in MB will not be accurate. Using 32 bits instead.
+/data/home/zhangyaojie/miniconda3/envs/Stella/bin/python
+3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+┏━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
+┃   ┃ Name          ┃ Type               ┃ Params ┃ Mode  ┃ FLOPs ┃
+┡━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━┩
+│ 0 │ model         │ ICL_FinetunedModel │  217 M │ train │     0 │
+│ 1 │ teacher_model │ ICL_FinetunedModel │  217 M │ eval  │     0 │
+└───┴───────────────┴────────────────────┴────────┴───────┴───────┘
+Trainable params: 101 M                                                                                    
+Non-trainable params: 334 M                                                                                
+Total params: 435 M                                                                                        
+Total estimated model params size (MB): 1,742.452                                                          
+Modules in train mode: 179                                                                                 
+Modules in eval mode: 179                                                                                  
+Total FLOPs: 0                                                                                             
+2026-06-11 14:57:02,418 - INFO - `on_fit_start` hook called. Syncing teacher model weights from student...
+2026-06-11 14:57:02,425 - INFO - VERIFYING teacher weights against student weights...
+2026-06-11 14:57:02,447 - INFO - SUCCESS: Teacher weights match student weights.
+2026-06-11 14:57:02,452 - INFO - Sample tensor sum: 2.597881317138672
+2026-06-11 14:57:02,453 - INFO - Teacher model weights synced successfully.
+2026-06-11 14:57:02,725 - INFO - Model architecture verification passed for both student and teacher.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 8. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/loops/fit_loop.py:538: Found 179 module(s) in eval mode at the start of training. This may lead to unexpected behavior during training. If this is intentional, you can ignore this warning.
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 4. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+Metric val_loss improved. New best score: 17.789
+Monitored metric val_loss did not improve in the last 3 records. Best score: 17.789. Signaling Trainer to stop.
+Epoch 3/11 ━━━━━━━━━━━━━━━ 15/15 0:00:22 •       0.80it/s v_num: d_42    
+                                 0:00:00                  train/loss_ste…
+                                                          159.765        
+                                                          train/recon_lo…
+                                                          0.222          
+                                                          train/mmd_loss…
+                                                          158.693        
+                                                          train/sw_loss_…
+                                                          0.068          
+                                                          train/cls_loss…
+                                                          0.849          
+                                                          train/cls_acc_…
+                                                          0.932 val_loss:
+                                                          40.571         
+                                                          train/loss_epo…
+                                                          30.595         
+                                                          train/recon_lo…
+                                                          0.218          
+                                                          train/mmd_loss…
+                                                          29.889         
+                                                          train/sw_loss_…
+                                                          0.069          
+                                                          train/cls_loss…
+                                                          0.488          
+                                                          train/cls_acc_…
+                                                          0.644          
+2026-06-11 14:59:50,969 - INFO - Running test evaluation with frozen teacher...
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [3]
+/data/home/zhangyaojie/miniconda3/envs/Stella/lib/python3.10/site-packages/pytorch_lightning/utilities/data.py:79: Trying to infer the `batch_size` from an ambiguous collection. The batch size we found is 7. To avoid any miscalculations, use `self.log(..., batch_size=batch_size)`.
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃        Test metric        ┃       DataLoader 0        ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│       test/cls_acc        │    0.5037878751754761     │
+│       test/cls_loss       │    0.5202075839042664     │
+│      test/mask_rate       │    0.2179880291223526     │
+│     test/masked_corr      │    0.5926595330238342     │
+│      test/masked_mae      │    0.1998092085123062     │
+│       test/mmd_loss       │    17.173784255981445     │
+│      test/recon_loss      │    0.2232620269060135     │
+│       test/sw_loss        │    0.07121980935335159    │
+│      test/sw_predict      │    0.1293802410364151     │
+│         test_loss         │    17.917966842651367     │
+└───────────────────────────┴───────────────────────────┘
+Testing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7/7 0:00:11 • 0:00:00 0.56it/s 
+2026-06-11 15:00:09,001 - INFO - Test results: [{'test_loss': 17.917966842651367, 'test/recon_loss': 0.2232620269060135, 'test/mmd_loss': 17.173784255981445, 'test/sw_loss': 0.07121980935335159, 'test/cls_loss': 0.5202075839042664, 'test/cls_acc': 0.5037878751754761, 'test/masked_mae': 0.1998092085123062, 'test/masked_corr': 0.5926595330238342, 'test/sw_predict': 0.1293802410364151, 'test/mask_rate': 0.2179880291223526}]
+2026-06-11 15:00:09,004 - INFO - Saved metrics summary to outputs/finetune/NG_output_full/fold_0/metrics_summary.json
+2026-06-11 15:00:09,006 - INFO - Fine-tuning pipeline completed successfully!

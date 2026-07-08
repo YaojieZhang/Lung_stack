@@ -1,3 +1,4 @@
+NG_NSCLC:
 AnnData object with n_obs × n_vars = 124483 × 31272
     obs: 'orig.ident', 'nCount_RNA', 'nFeature_RNA', 'sample_id', 'Platform', 'Patient', 'Timepoint', 'PathType', 'response', 'treatment', 'Residual', 'Group', 'Match', 'percent.mt', 'percent.rb', 'housekeeping_score', 'S.Score', 'G2M.Score', 'Phase', 'RNA_snn_res.0.6', 'seurat_clusters', 'cell_type', 'lineage', 'major', 'minor', 'ST_sample', 'ident'
     var: 'gene_symbols'
@@ -103,3 +104,72 @@ A1BG-AS1     A1BG-AS1
 A1CF             A1CF
 A2M               A2M
 A2M-AS1       A2M-AS1
+
+
+
+P01 ['NMPR']
+
+P05 ['pCR']
+
+P06 ['MPR']
+
+P07 ['NMPR']
+
+P08 ['NMPR']
+
+P09 ['pCR']
+
+P10 ['NMPR']
+
+
+HJJ_NSCLC:
+
+AnnData object with n_obs × n_vars = 2666754 × 58336
+    obs: 'n_genes', 'total_counts', 'doublet_scores', 'predicted_doublets', 'sample_lineage', 'sample', 'batch', 'pct_counts_mt'
+    var: 'gene_id', 'gene_type'
+                                   n_genes  total_counts  doublet_scores  \
+barcodes                                                                   
+P187T_AACACACAGACCAGGTCATTAGCATCC     1107        3020.0        0.010878   
+P187T_AACACACAGACCGTACTCCGACTGAGA     2707       10997.0        0.036411   
+P187T_AACACACAGACCTCGACTAGCACATGC     1632        6590.0        0.222506   
+P187T_AACACACAGACCTCGACTCTGTTCGGT      895        2146.0        0.033499   
+P187T_AACACACAGACCTGCTACTGCTATCGC      888        1560.0        0.024109   
+...                                    ...           ...             ...   
+P182T_TGTGGACACTGAGTAGTCGGCAACACT      834        1811.0        0.063116   
+P182T_TGTGGACACTGAGTAGTCTCGTCATGC     1572        5214.0        0.016008   
+P182T_TGTGGACACTTACACGACCTCTAACAC      800        1331.0        0.021984   
+P182T_TGTGGACACTTCGAGGATCCTTAGGTG     1856        4990.0        0.074197   
+P182T_TGTGGACACTTGCCGTCAAGGCAGAAC      488         747.0        0.015271   
+
+                                   predicted_doublets sample_lineage sample  \
+barcodes                                                                      
+P187T_AACACACAGACCAGGTCATTAGCATCC               False          Mesen  P187T   
+P187T_AACACACAGACCGTACTCCGACTGAGA               False           Endo  P187T   
+P187T_AACACACAGACCTCGACTAGCACATGC               False              T  P187T   
+P187T_AACACACAGACCTCGACTCTGTTCGGT               False           Endo  P187T   
+P187T_AACACACAGACCTGCTACTGCTATCGC               False              T  P187T   
+...                                               ...            ...    ...   
+P182T_TGTGGACACTGAGTAGTCGGCAACACT               False           Mast  P182T   
+P182T_TGTGGACACTGAGTAGTCTCGTCATGC               False            Epi  P182T   
+P182T_TGTGGACACTTACACGACCTCTAACAC               False         Immune  P182T   
+P182T_TGTGGACACTTCGAGGATCCTTAGGTG               False          Mesen  P182T   
+P182T_TGTGGACACTTGCCGTCAAGGCAGAAC               False         Immune  P182T   
+
+                                   batch  pct_counts_mt  
+barcodes                                                 
+P187T_AACACACAGACCAGGTCATTAGCATCC  P187T      17.350994  
+P187T_AACACACAGACCGTACTCCGACTGAGA  P187T      25.725197  
+P187T_AACACACAGACCTCGACTAGCACATGC  P187T      14.415781  
+P187T_AACACACAGACCTCGACTCTGTTCGGT  P187T      25.908667  
+P187T_AACACACAGACCTGCTACTGCTATCGC  P187T      10.000000  
+...                                  ...            ...  
+P182T_TGTGGACACTGAGTAGTCGGCAACACT  P182T      11.927113  
+P182T_TGTGGACACTGAGTAGTCTCGTCATGC  P182T      10.606061  
+P182T_TGTGGACACTTACACGACCTCTAACAC  P182T       5.184072  
+P182T_TGTGGACACTTCGAGGATCCTTAGGTG  P182T      10.941884  
+P182T_TGTGGACACTTGCCGTCAAGGCAGAAC  P182T       6.827309  
+
+[2666754 rows x 8 columns]
+['P187T', 'P9', 'P29', 'P111T', 'P159T', ..., 'P115T', 'P180T', 'P173T', 'P120T', 'P182T']
+Length: 179
+Categories (179, object): ['P187T', 'P9', 'P29', 'P111T', ..., 'P180T', 'P173T', 'P120T', 'P182T']

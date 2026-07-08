@@ -214,14 +214,26 @@ src/stack/data/finetuning/datasets.py
 
 
 datasets.py (line 34)新增 PAIRED_SAMPLING_METHODS 四种可选方法。
+
 在 MultiDatasetSplittableDataset 增加 paired_sampling_method 参数与校验。
-新增 _build_paired_balanced_sample() 及四个清晰标注的方法：method1_capacity_strict
+
+
+新增 _build_paired_balanced_sample() 及四个清晰标注的方法：
+
+method1_capacity_strict
+
 method2_capacity_repeat_pre
+
 method3_post_only_strict
+
 method4_post_only_repeat_pre
+
 _get_common_paired_pools
+
 _allocate_counts_by_capacity
+
 _assemble_paired_balanced_sample
+
 _build_paired_balanced_sample
 
 
@@ -239,28 +251,46 @@ ft_parsecg.yaml (line 18)当前默认设为 paired_sampling_method: method1_capa
 新增了test_paired_sampling_methods.py (line 122)增加四个采样策略测试，覆盖 prompt/query 边界、cell type 对齐、strict 不重复 pre、repeat 方法允许 pre 重复补齐。
 
 
-已完成这三个任务，且只做了静态/单元级验证，没有运行模型训练。
-改动集中在：
+
+
 datasets.py (line 1248)：在 dataset 初始化时加入 paired preflight validator，提前检查 LOPO train/val/test 是否有 paired group、每个 patient 的 common pre/post cell-type pool 是否能满足 sample_size / n_kept / n_replaced，并能提前暴露类似 P09 only 393 post cells but sample_size=512 的问题。
 datasets.py (line 1806)：把 paired 四种采样方法的 allocation 逻辑抽成共享 helper，preflight 和真正采样共用同一套判定，避免验证逻辑和运行逻辑漂移。
+
+
 datasets.py (line 2975)：给 create_datasets_from_gene_list() 补了 split_strategy / fold_index / val_fold_offset 参数，并向下传给 create_train_val_test_datasets()。
+
+
 launch_finetuning.py (line 277)：新增 checkpoint n_genes 与 data_module.n_genes 的一致性校验。
+
+
 launch_finetuning.py (line 374)：在加载 checkpoint config 后、真正 load model 前调用维度校验，不一致会直接报错。
+
 测试也补上了：
+
 test_paired_sampling_methods.py (line 315)：paired config parse。
+
 test_paired_sampling_methods.py (line 352)：LOPO paired split 非空检查。
+
 test_paired_sampling_methods.py (line 379)：sample_size=512 下 P09 post cell 不足的预期报错。
+
 同文件还补了 strict method capacity failure、pass-through 参数转发、checkpoint gene dimension mismatch 的测试。
 
 
 
 
 in-context prediction/generation 默认输出 NB mean，而不是 sampled count；同时保留 sample 选项。
+
 改动位置：
+
+
 inference.py (line 552)：get_incontext_prediction(..., prediction_output="mean")
+
 inference.py (line 695)：默认 result = mean_preds[is_test_cell_mask]，sample 时才用 count_preds
+
 inference.py (line 848)：get_incontext_generation() 继续向下传递 prediction_output
+
 generation.py (line 291)：CLI generation API 增加 prediction_output
+
 generation.py (line 462)：新增命令行参数 --prediction-output {mean,sample}
 
 
@@ -299,3 +329,99 @@ tests/test_finetune_stage1.py (line 1)
 
 根因在 lightning.py (line 151)：保存 checkpoint 时只保留 model.*，但 trainer.test(... ckpt_path="best") 会严格加载完整 LightningModule，需要 teacher_model.*。
 在 lightning.py (line 156) 加了 on_load_checkpoint()：如果 checkpoint 只有 model.*，加载时自动复制一份到 teacher_model.*。这样仍然保持 checkpoint 小，但 test 可以正常加载。
+
+
+
+
+新增了独立采样模块 sample_id_sampling.py (line 92)：GroupedTestSamplerDataset 会按 obs["sample_id"] 分组生成 cell set，最后不足 n_cells 的组内尾巴仍会补采样给模型，但保存 embedding 时只保留真实 unique cells，所以不会让 Pre/Post 或不同 sample_id 互相作为 Stack context。
+我也接入了 embedding CLI：embedding.py (line 262) 新增：
+bash
+
+--groupby-obs-col sample_id
+--patient-col Patient
+
+使用方式示例：
+bash
+
+PYTHONPATH=src /data/home/zhangyaojie/miniconda3/envs/Stella/bin/python -m stack.cli.embedding \
+  --groupby-obs-col sample_id \
+  --patient-col Patient \
+  --output /data/home/zhangyaojie/Lung_stack/outputs/embedding/embedding/NG.h5ad
+
+输出会按这个结构保存：
+text
+
+outputs/embedding/embedding/NG/<Patient>/<sample_id>.h5ad
+
+例如 NG/P01/BD_P_P01_N.h5ad。
+
+新增了 tests/test_sample_id_sampling.py (line 13)，但当前 base 和 Stella 环境都没有 pytest，所以 pytest 测试文件本身未能用 pytest runner 执行。
+
+
+
+在 src/stack/classifier/ 新增独立分类模块，不改现有 Stack 模型主体：
+
+dataset.py
+
+从已经筛选为 Pre-biopsy 的 .h5ad 读取数据。
+按 sample_id 内部连续切成 cell set，避免不同样本互相作为 context。
+每个 cell set 的 label 来自该 sample_id 对应的 adata.obs["response"]。
+只接受 NMPR、MPR，映射为 0/1。
+sample_id in {"XGY_P_P05_P", "BD_immune08"} 固定为 test，其余为 train。
+不设置 validation，不做 CV。
+model.py
+
+包装原始 Stack encoder。
+输入 cell set counts，经过 Stack encoder 得到 (batch, n_cells, 1600)。
+对 n_cells 维度 mean pooling，得到 (batch, 1600)。
+接 nn.Linear(1600, 2) 得到分类 logits。
+Stack encoder 和分类头一起训练，全量微调。
+train.py
+
+CLI 脚本：加载 checkpoint、构建 train/test dataloader、训练全模型。
+loss 用 CrossEntropyLoss。
+输出 test accuracy、每个 sample_id 的预测结果、保存 checkpoint。
+不引入 Lightning，先用原生 PyTorch，代码更直接，和现有模型解耦。
+我会避免的事情
+
+不改 src/stack/models/core 的 Stack 架构，不改 finetune 现有 paired 逻辑，不把这个分类任务混进生成/finetune pipeline。
+
+新增代码都放在 src/stack/classifier/，没有改 Stack 原始模型架构。
+新增内容：
+dataset.py (line 41)：按 sample_id 生成 cell set，标签来自 obs["response"]，默认 NMPR=0, MPR=1；固定 XGY_P_P05_P 和 BD_immune08 为 test，其余为 train；不做 Timepoint 过滤。
+model.py (line 10)：包装 Stack encoder，输出 (batch, n_cells, 1600) 后对 cell 维度 mean pooling，再接 Linear(1600, 2)。
+train.py (line 172)：原生 PyTorch 训练脚本，Stack encoder + 分类头全部参与训练，不冻结；无 CV、无 validation。
+tests/test_classifier_dataset.py (line 23) 和 tests/test_classifier_model.py (line 17)：覆盖固定 test split 和 mean pooling 行为。
+运行示例：
+bash
+
+
+
+PYTHONPATH=src /data/home/zhangyaojie/miniconda3/envs/Stella/bin/python -m stack.classifier.train \
+  --checkpoint /path/to/bc_large.ckpt \
+  --adata /path/to/pre_biopsy_only.h5ad \
+  --genelist /path/to/basecount_1000per_15000max.pkl \
+  --gene-name-col gene_symbols \
+  --output-dir /data/home/zhangyaojie/Lung_stack/outputs/classifier/pre_response \
+  --epochs 10 \
+  --batch-size 8 \
+  --lr 1e-5 \
+  --device auto
+
+输出：
+stack_cellset_classifier.pt
+metrics.json
+test_predictions.csv
+验证已完成：
+unittest tests.test_classifier_dataset tests.test_classifier_model：2 tests OK
+py_compile：通过
+python -m stack.classifier.train --help：通过
+
+
+
+已经完成的部分
+dataset.py 已完成固定 train/test 拆分逻辑：CellSetClassificationDataset 会按 sample_id 生成 cell set，默认把 XGY_P_P05_P 和 BD_immune08 放进 test，其余 sample_id 放进 train；不做 CV、不做 validation。标签来自 obs["response"]，默认映射是 NMPR=0, MPR=1。它复用了之前的 gene 对齐和 h5ad 读取逻辑，所以输入还是原始表达矩阵 cell set，不是预先保存的 per-cell embedding。
+
+model.py 已完成你的核心模型想法：StackCellSetClassifier 包装原始 Stack encoder，输入 cell set 后走 _reduce_and_tokenize() 和 _run_attention_layers()，得到 (batch, n_cells, embedding_dim) 的 cell embeddings，然后对 n_cells 维度 mean pooling，最后接 Linear(embedding_dim, 2)。embedding_dim 自动用 stack_model.n_hidden * stack_model.token_dim，你的大模型应当就是 1600。
+
+train.py 已完成一个基础训练脚本：加载 Stack checkpoint，构建 train/test dataloader，用 CrossEntropyLoss 和 AdamW 训练。因为 optimizer 是 model.parameters()，所以 Stack encoder 和线性分类头都会被训练，也就是符合你后来要求的“全量微调，不冻结 Stack encoder”。训练后会保存 stack_cellset_classifier.pt、metrics.json 和 test_predictions.csv。

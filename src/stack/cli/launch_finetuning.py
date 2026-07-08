@@ -7,7 +7,7 @@ import json
 import logging
 import os
 import sys
-from typing import Dict
+from typing import Any, Dict, Iterable, Optional, Tuple
 from pathlib import Path
 
 print(sys.executable)
@@ -99,8 +99,8 @@ def configure_callbacks(args: argparse.Namespace,
             filename="finetuned-{epoch}-{val_loss:.4f}",
             monitor="val_loss",
             mode="min",
-            save_top_k=3,
-            save_last=True,
+            save_top_k=0, # save ckpt or not （storage limited）
+            save_last=False, # save last ckpt or not
             verbose=True,
         ),
         early_stopping_cls(
@@ -112,6 +112,96 @@ def configure_callbacks(args: argparse.Namespace,
         ),
         lr_monitor_cls(logging_interval="epoch"),
     ]
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert common runtime objects to JSON-serializable values."""
+    if isinstance(value, argparse.Namespace):
+        return _json_safe(vars(value))
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, set):
+        return [_json_safe(item) for item in sorted(value, key=str)]
+    if hasattr(value, "item"):
+        try:
+            return value.item()
+        except (TypeError, ValueError):
+            pass
+    try:
+        json.dumps(value)
+        return value
+    except TypeError:
+        return str(value)
+
+
+def _checkpoint_summary(callbacks: Iterable[Any]) -> Tuple[str, Optional[Any]]:
+    """Return the best checkpoint path and validation score from callbacks."""
+    best_model_path = ""
+    best_model_score = None
+    early_stopping_score = None
+
+    for callback in callbacks:
+        if hasattr(callback, "best_model_path"):
+            path = getattr(callback, "best_model_path", "") or ""
+            if path:
+                best_model_path = str(path)
+            score = getattr(callback, "best_model_score", None)
+            if score is not None:
+                best_model_score = score
+        if early_stopping_score is None and hasattr(callback, "best_score"):
+            early_stopping_score = getattr(callback, "best_score")
+
+    if best_model_score is None:
+        best_model_score = early_stopping_score
+    return best_model_path, best_model_score
+
+
+def save_metrics_summary(
+    *,
+    args: argparse.Namespace,
+    model_config: Dict[str, Any],
+    split_info: Dict[str, Any],
+    test_results: Any,
+    callbacks: Iterable[Any],
+    test_checkpoint_path: Optional[str],
+) -> Path:
+    """Persist compact per-fold metrics for storage-light experiment tracking."""
+    best_checkpoint_path, best_val_loss = _checkpoint_summary(callbacks)
+    test_metrics = test_results[0] if test_results else {}
+    metric_keys = (
+        "test_loss",
+        "test/mmd_loss",
+        "test/recon_loss",
+        "test/masked_corr",
+        "test/sw_predict",
+    )
+
+    summary = {
+        "fold_index": args.fold_index,
+        "run_name": args.run_name,
+        "seed": args.random_seed,
+        "train_patients": split_info.get("train_patients", []),
+        "val_patients": split_info.get("val_patients", []),
+        "test_patients": split_info.get("test_patients", []),
+        "best_val_loss": _json_safe(best_val_loss),
+        "best_checkpoint_path": best_checkpoint_path,
+        "test_checkpoint_path": test_checkpoint_path or "",
+        **{key: _json_safe(test_metrics.get(key)) for key in metric_keys},
+        "config": {
+            "args": _json_safe(args),
+            "model_config": _json_safe(model_config),
+        },
+    }
+
+    summary_path = Path(args.save_dir) / "metrics_summary.json"
+    with summary_path.open("w") as handle:
+        json.dump(summary, handle, indent=4)
+    logging.info("Saved metrics summary to %s", summary_path)
+    return summary_path
 
 
 def build_parser(parents=None) -> argparse.ArgumentParser:
@@ -476,10 +566,25 @@ def main() -> None:
 
     trainer.fit(student_model, datamodule=data_module)
 
+    best_checkpoint_path, _ = _checkpoint_summary(callbacks)
+    test_checkpoint_path = best_checkpoint_path or None
+    test_results = []
     if data_module.test_dataset is not None and len(data_module.test_dataset) > 0:
         logging.info("Running test evaluation with frozen teacher...")
-        test_results = trainer.test(student_model, datamodule=data_module, ckpt_path="best")
+        test_kwargs = {"datamodule": data_module}
+        if test_checkpoint_path:
+            test_kwargs["ckpt_path"] = test_checkpoint_path
+        test_results = trainer.test(student_model, **test_kwargs)
         logging.info("Test results: %s", test_results)
+
+    save_metrics_summary(
+        args=args,
+        model_config=model_config,
+        split_info=split_info,
+        test_results=test_results,
+        callbacks=callbacks,
+        test_checkpoint_path=test_checkpoint_path,
+    )
 
     logging.info("Fine-tuning pipeline completed successfully!")
 

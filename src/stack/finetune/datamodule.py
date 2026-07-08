@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 
 from ..data.finetuning import datasets as finetuning_datasets
 
-log = logging.getLogger(__name__)
+log 
+logging.getLogger(__name__)
 
 
 def finetune_collate_fn(batch: List[Any]) -> Any:

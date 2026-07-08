@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import numpy as np
 import pytest
 import sys
@@ -417,6 +418,63 @@ def test_prepare_lopo_output_paths_preserves_existing_fold_dir():
 
     assert args.save_dir == "/tmp/ng/fold_2"
     assert args.run_name == "nsclc_fold_2_seed_7"
+
+
+def test_save_metrics_summary_writes_core_fields(tmp_path):
+    from stack.cli.launch_finetuning import save_metrics_summary
+
+    args = SimpleNamespace(
+        save_dir=str(tmp_path),
+        fold_index=2,
+        random_seed=7,
+        run_name="ng_fold2",
+        learning_rate=1e-5,
+    )
+    split_info = {
+        "train_patients": ["P01", "P05"],
+        "val_patients": ["P07"],
+        "test_patients": ["P06"],
+    }
+    test_results = [
+        {
+            "test_loss": 1.25,
+            "test/mmd_loss": 1.0,
+            "test/recon_loss": 0.2,
+            "test/masked_corr": 0.6,
+            "test/sw_predict": 0.1,
+        }
+    ]
+    checkpoint_callback = SimpleNamespace(
+        best_model_path="/tmp/best.ckpt",
+        best_model_score=np.float32(3.5),
+    )
+
+    summary_path = save_metrics_summary(
+        args=args,
+        model_config={"n_genes": 15012},
+        split_info=split_info,
+        test_results=test_results,
+        callbacks=[checkpoint_callback],
+        test_checkpoint_path="/tmp/best.ckpt",
+    )
+
+    summary = json.loads(summary_path.read_text())
+    assert summary["fold_index"] == 2
+    assert summary["run_name"] == "ng_fold2"
+    assert summary["seed"] == 7
+    assert summary["train_patients"] == ["P01", "P05"]
+    assert summary["val_patients"] == ["P07"]
+    assert summary["test_patients"] == ["P06"]
+    assert summary["best_val_loss"] == pytest.approx(3.5)
+    assert summary["best_checkpoint_path"] == "/tmp/best.ckpt"
+    assert summary["test_checkpoint_path"] == "/tmp/best.ckpt"
+    assert summary["test_loss"] == 1.25
+    assert summary["test/mmd_loss"] == 1.0
+    assert summary["test/recon_loss"] == 0.2
+    assert summary["test/masked_corr"] == 0.6
+    assert summary["test/sw_predict"] == 0.1
+    assert summary["config"]["model_config"]["n_genes"] == 15012
+    assert summary["config"]["args"]["fold_index"] == 2
 
 
 def test_split_info_includes_patient_labels():
