@@ -1,0 +1,914 @@
+[
+  {
+    "epoch": 1,
+    "train": {
+      "loss": 0.6203392141809067,
+      "accuracy": 0.7291666666666666,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 1.1745850618680318,
+        "accuracy": 0.5333333333333333,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 0.6666666666666666,
+        "macro_f1": 0.5555555555555555,
+        "balanced_accuracy": 0.6666666666666666,
+        "per_class_recall": {
+          "NMPR": 0.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 0.0,
+          "MPR": 1.0,
+          "pCR": 0.6666666666666666
+        },
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 2,
+    "train": {
+      "loss": 0.14032574414482546,
+      "accuracy": 0.9826388888888888,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.6159200211366017,
+        "accuracy": 0.7733333333333333,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 3,
+    "train": {
+      "loss": 0.05029618859084116,
+      "accuracy": 0.9913194444444444,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.6139242299397787,
+        "accuracy": 0.7866666666666666,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 4,
+    "train": {
+      "loss": 0.024255509792257927,
+      "accuracy": 0.9982638888888888,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5519270861148834,
+        "accuracy": 0.7733333333333333,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 5,
+    "train": {
+      "loss": 0.00788780444741456,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.6392132233579954,
+        "accuracy": 0.76,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 6,
+    "train": {
+      "loss": 0.004643962746033342,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5799207437038422,
+        "accuracy": 0.76,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 7,
+    "train": {
+      "loss": 0.0034286198901504073,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5345499976476034,
+        "accuracy": 0.8133333333333334,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 8,
+    "train": {
+      "loss": 0.002692874614796084,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5220542818307876,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 9,
+    "train": {
+      "loss": 0.0021913292754713134,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5152053000529607,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 10,
+    "train": {
+      "loss": 0.0018356373734099583,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5280146316687266,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 11,
+    "train": {
+      "loss": 0.0015550239695585333,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5286640898386638,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 12,
+    "train": {
+      "loss": 0.0013342999659976664,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5426626223325729,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 13,
+    "train": {
+      "loss": 0.0011626470788744176,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5152329277992248,
+        "accuracy": 0.8133333333333334,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 14,
+    "train": {
+      "loss": 0.0010211623727324575,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5275876039266586,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 15,
+    "train": {
+      "loss": 0.000906436213780479,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5313612547516823,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 16,
+    "train": {
+      "loss": 0.0008087752481110834,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.53313476840655,
+        "accuracy": 0.8,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 17,
+    "train": {
+      "loss": 0.0007268327883341246,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5229891847570737,
+        "accuracy": 0.8133333333333334,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 18,
+    "train": {
+      "loss": 0.0006559998607068943,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5238564853866895,
+        "accuracy": 0.8133333333333334,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  },
+  {
+    "epoch": 19,
+    "train": {
+      "loss": 0.0005954354217263042,
+      "accuracy": 1.0,
+      "n_cell_sets": 576
+    },
+    "val": {
+      "cellset": {
+        "loss": 0.5246685652931531,
+        "accuracy": 0.8133333333333334,
+        "n_cell_sets": 75
+      },
+      "patient": {
+        "accuracy": 1.0,
+        "macro_f1": 1.0,
+        "balanced_accuracy": 1.0,
+        "per_class_recall": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "per_class_f1": {
+          "NMPR": 1.0,
+          "MPR": 1.0,
+          "pCR": 1.0
+        },
+        "confusion_matrix": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "n_patients": 3
+      }
+    }
+  }
+]

@@ -1,0 +1,133 @@
+{
+  "fold": 4,
+  "trial_id": 21,
+  "config": {
+    "trial_id": 21,
+    "head_type": "mlp",
+    "lr": 5e-05,
+    "weight_decay": 0.0001,
+    "sample_size": 256,
+    "max_samples": 32,
+    "middle_dim": null,
+    "dropout": 0.2
+  },
+  "split": {
+    "fold": 4,
+    "train_sample_ids": [
+      "P57",
+      "P42",
+      "P44",
+      "P34",
+      "P47",
+      "P45",
+      "P50",
+      "P16",
+      "P39",
+      "P25",
+      "P20",
+      "P56",
+      "P37",
+      "P48",
+      "P49",
+      "P53",
+      "P40",
+      "P14"
+    ],
+    "val_sample_ids": [
+      "P54",
+      "P38",
+      "P55"
+    ],
+    "test_sample_ids": [
+      "P41",
+      "P52",
+      "P4",
+      "P35",
+      "P43",
+      "P46"
+    ]
+  },
+  "best_epoch": 14,
+  "epochs_ran": 24,
+  "best_val": {
+    "cellset": {
+      "loss": 0.19826786816120148,
+      "accuracy": 0.9733333333333334,
+      "n_cell_sets": 75
+    },
+    "patient": {
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "balanced_accuracy": 1.0,
+      "per_class_recall": {
+        "NMPR": 1.0,
+        "MPR": 1.0,
+        "pCR": 1.0
+      },
+      "per_class_f1": {
+        "NMPR": 1.0,
+        "MPR": 1.0,
+        "pCR": 1.0
+      },
+      "confusion_matrix": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "n_patients": 3
+    }
+  },
+  "test": {
+    "cellset": {
+      "loss": 1.7062112088315189,
+      "accuracy": 0.2864583333333333,
+      "n_cell_sets": 192
+    },
+    "patient": {
+      "accuracy": 0.16666666666666666,
+      "macro_f1": 0.1111111111111111,
+      "balanced_accuracy": 0.16666666666666666,
+      "per_class_recall": {
+        "NMPR": 0.0,
+        "MPR": 0.5,
+        "pCR": 0.0
+      },
+      "per_class_f1": {
+        "NMPR": 0.0,
+        "MPR": 0.3333333333333333,
+        "pCR": 0.0
+      },
+      "confusion_matrix": [
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          2,
+          0
+        ]
+      ],
+      "n_patients": 6
+    }
+  },
+  "run_dir": "/data/home/zhangyaojie/Lung_stack/outputs/classifier/pre_response/IAT/fold_4/trial_021"
+}

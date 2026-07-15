@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Sequence
+from dataclasses import dataclass
+from typing import Any, Dict, Mapping, Optional, Sequence
 
 import h5py
 import numpy as np
@@ -14,7 +15,16 @@ from ..sample_id_sampling import GroupedSample, GroupedTestSamplerDataset, _orde
 log = logging.getLogger(__name__)
 
 DEFAULT_TEST_SAMPLE_IDS = ("P22", "XGY_P_P05_P", "BD_immune08")
-DEFAULT_LABELS = ("MPR", "pCR", "NMPR")
+DEFAULT_LABELS = ("NMPR", "MPR", "pCR")
+MISSING_LABEL_VALUES = {"", "NA", "NaN", "nan", "None", "none", "null"}
+
+
+@dataclass(frozen=True)
+class ClassifierFold:
+    fold: int
+    train_sample_ids: tuple[str, ...]
+    val_sample_ids: tuple[str, ...]
+    test_sample_ids: tuple[str, ...]
 
 
 def _read_obs_column_from_h5(path: str, column: str) -> np.ndarray:
@@ -38,6 +48,157 @@ def _read_obs_column_from_h5(path: str, column: str) -> np.ndarray:
     raise ValueError(f"Cannot read obs column '{column}' from {path}")
 
 
+def _is_missing_label(value: str) -> bool:
+    return str(value).strip() in MISSING_LABEL_VALUES
+
+
+def read_sample_label_map(
+    adata_or_path,
+    *,
+    label_col: str = "response",
+    groupby_col: str = "sample_id",
+) -> dict[str, str]:
+    """Read one response label per sample from an AnnData object or .h5ad path."""
+
+    if hasattr(adata_or_path, "obs"):
+        adata = adata_or_path
+        if groupby_col not in adata.obs:
+            raise KeyError(f"Column '{groupby_col}' not found in adata.obs")
+        if label_col not in adata.obs:
+            raise KeyError(f"Column '{label_col}' not found in adata.obs")
+        group_values = adata.obs[groupby_col].astype(str).to_numpy()
+        label_values = adata.obs[label_col].astype(str).to_numpy()
+    else:
+        group_values = _read_obs_column_from_h5(str(adata_or_path), groupby_col)
+        label_values = _read_obs_column_from_h5(str(adata_or_path), label_col)
+
+    sample_labels: dict[str, str] = {}
+    for sample_id, label in zip(group_values.astype(str), label_values.astype(str)):
+        if _is_missing_label(label):
+            continue
+        existing = sample_labels.get(sample_id)
+        if existing is None:
+            sample_labels[sample_id] = label
+        elif existing != label:
+            raise ValueError(
+                f"Expected one label for sample_id {sample_id}, got {existing!r} and {label!r}"
+            )
+
+    return sample_labels
+
+
+def make_stratified_holdout_folds(
+    sample_labels: Mapping[str, str],
+    *,
+    labels: Sequence[str] = DEFAULT_LABELS,
+    test_per_class: int = 2,
+    n_folds: int = 7,
+    val_per_class: int = 1,
+    random_state: Optional[int] = 0,
+    test_sample_ids: Optional[Sequence[str]] = None,
+) -> tuple[ClassifierFold, ...]:
+    """Build fixed test sample IDs plus stratified validation folds.
+
+    When a class has fewer remaining samples than ``n_folds * val_per_class``,
+    validation samples for that class are cycled to preserve one validation
+    sample per class in every fold.
+    """
+
+    if test_per_class < 0:
+        raise ValueError("test_per_class must be non-negative")
+    if n_folds < 1:
+        raise ValueError("n_folds must be at least 1")
+    if val_per_class < 1:
+        raise ValueError("val_per_class must be at least 1")
+
+    sample_labels = {
+        str(sample_id): str(label)
+        for sample_id, label in sample_labels.items()
+    }
+    label_order = tuple(labels)
+    label_set = set(label_order)
+    ordered_samples = tuple(str(sample_id) for sample_id in sample_labels)
+    by_label = {
+        label: [sample_id for sample_id in ordered_samples if sample_labels[sample_id] == label]
+        for label in label_order
+    }
+
+    missing_labels = [label for label, sample_ids in by_label.items() if not sample_ids]
+    if missing_labels:
+        raise ValueError(f"No samples found for labels: {missing_labels}")
+
+    rng = np.random.default_rng(random_state)
+    if test_sample_ids:
+        test_ids = tuple(str(sample_id) for sample_id in test_sample_ids)
+        unknown = [sample_id for sample_id in test_ids if sample_id not in sample_labels]
+        if unknown:
+            raise ValueError(f"Unknown test sample_ids: {unknown}")
+    else:
+        selected: list[str] = []
+        for label, sample_ids in by_label.items():
+            if len(sample_ids) <= test_per_class:
+                raise ValueError(
+                    f"Need more than {test_per_class} samples for label {label}, got {len(sample_ids)}"
+                )
+            shuffled = np.array(sample_ids, dtype=object)
+            rng.shuffle(shuffled)
+            selected.extend(str(sample_id) for sample_id in shuffled[:test_per_class])
+        test_ids = tuple(selected)
+
+    test_id_set = set(test_ids)
+    bad_test_labels = [
+        sample_id for sample_id in test_ids if sample_labels[sample_id] not in label_set
+    ]
+    if bad_test_labels:
+        raise ValueError(f"Test sample_ids have labels outside {label_order}: {bad_test_labels}")
+
+    val_schedule: dict[str, list[str]] = {}
+    for label in label_order:
+        candidates = [
+            sample_id
+            for sample_id in by_label[label]
+            if sample_id not in test_id_set
+        ]
+        if len(candidates) < val_per_class:
+            raise ValueError(
+                f"Need at least {val_per_class} non-test samples for label {label}, got {len(candidates)}"
+            )
+        shuffled = np.array(candidates, dtype=object)
+        rng.shuffle(shuffled)
+        ordered_candidates = [str(sample_id) for sample_id in shuffled]
+        required = n_folds * val_per_class
+        repeated = [
+            ordered_candidates[idx % len(ordered_candidates)]
+            for idx in range(required)
+        ]
+        val_schedule[label] = repeated
+
+    remaining_ids = tuple(
+        sample_id for sample_id in ordered_samples if sample_id not in test_id_set
+    )
+    folds: list[ClassifierFold] = []
+    for fold_idx in range(n_folds):
+        val_ids: list[str] = []
+        start = fold_idx * val_per_class
+        end = start + val_per_class
+        for label in label_order:
+            val_ids.extend(val_schedule[label][start:end])
+        val_id_set = set(val_ids)
+        train_ids = tuple(
+            sample_id for sample_id in remaining_ids if sample_id not in val_id_set
+        )
+        folds.append(
+            ClassifierFold(
+                fold=fold_idx,
+                train_sample_ids=train_ids,
+                val_sample_ids=tuple(val_ids),
+                test_sample_ids=test_ids,
+            )
+        )
+
+    return tuple(folds)
+
+
 class CellSetClassificationDataset(GroupedTestSamplerDataset):
     """Cell-set dataset labeled by sample-level treatment response."""
 
@@ -48,6 +209,8 @@ class CellSetClassificationDataset(GroupedTestSamplerDataset):
         *,
         split: str,
         test_sample_ids: Sequence[str] = DEFAULT_TEST_SAMPLE_IDS,
+        val_sample_ids: Sequence[str] = (),
+        sample_ids: Optional[Sequence[str]] = None,
         label_col: str = "response",
         groupby_col: str = "sample_id",
         labels: Sequence[str] = DEFAULT_LABELS,
@@ -57,14 +220,17 @@ class CellSetClassificationDataset(GroupedTestSamplerDataset):
         filter_organism: bool = True,
         random_state: Optional[int] = 42,
     ) -> None:
-        if split not in {"train", "test"}:
-            raise ValueError("split must be 'train' or 'test'")
+        if split not in {"train", "val", "test"}:
+            raise ValueError("split must be 'train', 'val', or 'test'")
 
         self.split = split
         self.test_sample_ids = set(test_sample_ids)
+        self.val_sample_ids = set(val_sample_ids)
+        self.sample_ids = None if sample_ids is None else set(sample_ids)
         self.label_col = label_col
         self.labels = tuple(labels)
-        self.label_to_idx = {label: idx for idx, label in enumerate(self.labels)}
+        self._label_to_idx = {label: idx for idx, label in enumerate(self.labels)}
+        self.label_to_idx = dict(self._label_to_idx)
         self.sample_labels: list[int] = []
 
         super().__init__(
@@ -95,23 +261,33 @@ class CellSetClassificationDataset(GroupedTestSamplerDataset):
         return values[self.human_mask].astype(str)
 
     def _should_use_group(self, sample_id: str) -> bool:
+        if self.sample_ids is not None:
+            return sample_id in self.sample_ids
+
         is_test_sample = sample_id in self.test_sample_ids
-        return is_test_sample if self.split == "test" else not is_test_sample
+        is_val_sample = sample_id in self.val_sample_ids
+        if self.split == "test":
+            return is_test_sample
+        if self.split == "val":
+            return is_val_sample
+        return not is_test_sample and not is_val_sample
 
     def _label_for_group(self, sample_id: str, label_values: np.ndarray) -> int:
         group_labels = label_values[self.group_values == sample_id]
-        unique_labels = sorted({label for label in group_labels if label != ""})
+        unique_labels = sorted(
+            {label for label in group_labels if not _is_missing_label(label)}
+        )
         if len(unique_labels) != 1:
             raise ValueError(
                 f"Expected exactly one response label for sample_id {sample_id}, got {unique_labels}"
             )
 
         label = unique_labels[0]
-        if label not in self.label_to_idx:
+        if label not in self._label_to_idx:
             raise ValueError(
                 f"Unsupported label '{label}' for sample_id {sample_id}; expected {self.labels}"
             )
-        return self.label_to_idx[label]
+        return self._label_to_idx[label]
 
     def _generate_samples(self) -> None:
         log.info(
@@ -149,6 +325,10 @@ class CellSetClassificationDataset(GroupedTestSamplerDataset):
             self._append_group_samples(sample_id, group_local_indices, label_idx)
 
         log.info("Generated %s %s classifier samples", len(self.samples), self.split)
+        present_label_indices = sorted(set(self.sample_labels))
+        self.label_to_idx = {
+            self.labels[label_idx]: label_idx for label_idx in present_label_indices
+        }
 
     def _append_group_samples(
         self,

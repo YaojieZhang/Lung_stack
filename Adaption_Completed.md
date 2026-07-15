@@ -425,3 +425,42 @@ dataset.py 已完成固定 train/test 拆分逻辑：CellSetClassificationDatase
 model.py 已完成你的核心模型想法：StackCellSetClassifier 包装原始 Stack encoder，输入 cell set 后走 _reduce_and_tokenize() 和 _run_attention_layers()，得到 (batch, n_cells, embedding_dim) 的 cell embeddings，然后对 n_cells 维度 mean pooling，最后接 Linear(embedding_dim, 2)。embedding_dim 自动用 stack_model.n_hidden * stack_model.token_dim，你的大模型应当就是 1600。
 
 train.py 已完成一个基础训练脚本：加载 Stack checkpoint，构建 train/test dataloader，用 CrossEntropyLoss 和 AdamW 训练。因为 optimizer 是 model.parameters()，所以 Stack encoder 和线性分类头都会被训练，也就是符合你后来要求的“全量微调，不冻结 Stack encoder”。训练后会保存 stack_cellset_classifier.pt、metrics.json 和 test_predictions.csv。
+
+
+26.7.8
+完成了修改：
+dataset.py：支持 train/val/test 显式 sample split，新增 read_sample_label_map() 和固定 test + 7-fold val split helper。
+model.py：加入 6 种分类头，默认冻结 Stack encoder，只训练 classifier head。
+train.py：升级为固定 test、7-fold val、early stopping、超参 grid、TensorBoard、patient-level metrics/predictions 输出。
+__init__.py：导出新增 helper/head 类型。
+关键一点：preneo_IAT.h5ad 实际类别数是 MPR=10, NMPR=8, pCR=9。每类固定 2 个 test 后，NMPR 只剩 6 个，所以严格“不重复的 7-fold 且每 fold val 每类 1 个”数学上不可能。我实现为 7 个 stratified validation folds，不足类会循环复用，split_summary.json 会记录 repeated/never-val samples。
+
+
+1. 一共27例患者样本，label为3类：nmpr/mpr/pcr，数据划分为train:val:test = 18:3:6, val中3个labels每种一例，test中每种label两例；固定3类labels中每类 2 例作为 test，然后剩余21例做7-fold CV，每一fold先选出3例val，要求每种标签一例，然后剩余的作为train。
+2. 分类头设置以下几种不同的分类头：
+   1. 简单linear线性层；
+   2. Linear + activation + dropout + Linear；
+   3. self.cls = nn.Sequential(nn.Linear(hidden_dim, middle_dim),
+        nn.LayerNorm(middle_dim),
+        nn.GELU(),
+        nn.Dropout(),
+        nn.Linear(middle_dim, num_classes)
+     )
+    4. self.cls = nn.Sequential(
+        nn.LayerNorm(hidden_dim),
+        nn.Linear(hidden_dim, num_classes)
+     )
+    5. self.cls = nn.Sequential( nn.Dropout(), nn.Linear(hidden_dim, num_classes) )
+    6. Attention pooling + classification head: class AttentionPoolingHead(nn.Module): def __init__(self, hidden_dim, num_classes): super().__init__() self.attn = nn.Sequential( nn.Linear(hidden_dim, hidden_dim // 2), nn.Tanh(), nn.Linear(hidden_dim // 2, 1) ) self.cls = nn.Linear(hidden_dim, num_classes) def forward(self, cell_emb): # cell_emb: [n_cells, hidden_dim] attn_score = self.attn(cell_emb) # [n_cells, 1] attn_weight = attn_score.softmax(dim=0) # [n_cells, 1] sample_emb = (attn_weight * cell_emb).sum(dim=0) logits = self.cls(sample_emb) return logits, attn_weight
+3. 使用stack模型已经预训练好的encoder参数，冻结encoder，仅仅训练classifier分类头部分；
+4. 需要 val 来做：early stopping、选择 epoch、选择学习率、weight decay、选择 sample_size / max_samples；选择 cell set 数量；选择分类头结构
+5. 最后结果做patient-level accuracy(对每个患者的所有 cell sets 取平均预测概率,然后得到 patient-level prediction)；macro-F1；balanced accuracy；per-class recall；confusion matrix；
+6. 调用tensorboard实时监控学习中的各项参数
+
+验证已跑：
+compileall src/stack/classifier: OK
+tests/test_classifier_dataset.py: OK
+tests/test_classifier_model.py: OK
+python -m stack.classifier.train --help: OK
+真实 IAT split check: OK
+auto test ids with seed 0 = ('P41', 'P52', 'P4', 'P35', 'P43', 'P46')
